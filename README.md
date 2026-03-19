@@ -194,12 +194,36 @@ sales-engine/
 │  Skills call the engine. Zero tokens in context window.
 │  ═══════════════════════════════════════════════════════
 │
-└── engine/                        ← Optional software underneath
-    └── (CRM integration, email API, SQLite pipeline DB,
-         lead scoring model, sequence automation...)
+├── engine/                        ← Optional software underneath
+│   └── (CRM integration, email API, SQLite pipeline DB,
+│        lead scoring model, sequence automation...)
+│
+│  ═══════════════════════════════════════════════════════
+│  PROJECT LAYER — What agents BUILD (work product)
+│  Not config. Not instructions. The actual output.
+│  User reviews this. Agents create and update it.
+│  ═══════════════════════════════════════════════════════
+│
+├── output/                       ← Generated artifacts
+│   ├── proposals/                   Proposals agents have written
+│   ├── analyses/                    Market research, competitive intel
+│   ├── reports/                     Pipeline reports, forecasts
+│   └── sequences/                   Generated email sequences
+│
+├── data/                         ← Working data
+│   ├── leads.csv                    Scraped/enriched lead lists
+│   ├── pipeline.json                Current deal pipeline state
+│   └── call-notes/                  Transcribed call summaries
+│
+└── .canopy/                      ← Runtime state (gitignored)
+    ├── tasks/                       Active task queue
+    ├── sessions/                    Agent session persistence
+    └── observations/                Friction patterns for learning loop
 ```
 
-**~25 files. ~2,000 lines of markdown. That's a complete AI sales team.**
+**~30 files of config. Unlimited output.** The Canopy layer is the brain. The project
+layer is what the brain produces. User comes back, opens `output/`, reviews what agents
+built. Approves, edits, or sends back for revision.
 
 ---
 
@@ -271,6 +295,31 @@ Tracks tokens and dollars. Rollup at any level. Enforced at every execution
 boundary — scheduler, manual invoke, task checkout.
 
 See [`architecture/budgets.md`](architecture/budgets.md).
+
+### Agent Commerce (Machine Payments Protocol)
+
+Agents don't just do work — they **buy things**. Stripe's Machine Payments Protocol
+(MPP) lets agents transact autonomously: pay for APIs, buy compute, purchase services
+from other agent workspaces.
+
+```
+Agent needs browser sessions for scraping
+  → Hits Browserbase API
+  → Gets payment request back (MPP)
+  → Checks budget (Canopy governance)
+  → Authorizes payment (within threshold)
+  → Receives resource
+  → Spend logged to workspace budget
+```
+
+Canopy's budget enforcement + governance gates wrap around MPP:
+- **Under threshold** — agent pays autonomously, logged to budget
+- **Over threshold** — payment queued for human approval
+- **Over budget** — hard stop, no payment authorized
+
+This is how autonomous companies actually work. Agents buying from agents.
+Your sales workspace pays for lead data. Your dev workspace pays for compute.
+Your content workspace pays for stock images. All within governed budgets.
 
 ### Governance & Approval Gates
 

@@ -24,15 +24,67 @@ Any workspace that follows this protocol can be operated by any agent:
 
 ```
 workspace/
+│
+│  ── CANOPY LAYER (workspace config) ──────────────────────────
+│  The agent's brain. Identity, capabilities, knowledge, rules.
+│  This is ROM — persistent, transferable, version-controlled.
+│
 ├── SYSTEM.md              ← Entry point: "Here's who you are, here's what you do"
+├── company.yaml           ← Org chart, budgets, governance, goals (optional)
 ├── agents/                ← "Here are your specialist sub-agents"
 │   └── {name}.md
 ├── skills/                ← "Here are your commands"
 │   └── {name}/SKILL.md
 ├── reference/             ← "Here's your domain knowledge"
 │   └── *.md / *.yaml
-└── [workspace-specific]   ← Whatever this system needs (engine, data, src, etc.)
+├── workflows/             ← Multi-step process definitions
+│   └── *.md
+├── spec/                  ← Acceptance criteria, contracts, validation rules
+│   └── *.md
+├── engine/                ← Invisible infrastructure (search, DB, integrations)
+│   └── ...
+│
+│  ── PROJECT LAYER (work product) ─────────────────────────────
+│  What the agents BUILD. Code, apps, data, assets, outputs.
+│  This is RAM in motion — actively created, deployed, shipped.
+│
+├── src/                   ← Source code (if building software)
+│   └── ...
+├── data/                  ← Datasets, exports, scraped content
+│   └── ...
+├── output/                ← Generated artifacts (reports, assets, builds)
+│   └── ...
+├── apps/                  ← Applications the workspace builds/manages
+│   └── {app-name}/
+└── .canopy/               ← Runtime state (task queue, sessions, observations)
+    ├── tasks/
+    ├── sessions/
+    └── observations/
 ```
+
+### The Two Layers
+
+Every workspace has two distinct layers:
+
+**Canopy Layer** — The workspace configuration. SYSTEM.md, agents, skills, reference,
+workflows, specs, engine. This is what makes a generic agent into a specialist. It's
+the ROM — persistent knowledge that doesn't change during execution. You version control
+this. You distribute this. This IS the product.
+
+**Project Layer** — The work product. Source code, applications, data, generated output.
+This is what the agents actually BUILD when they operate. A dev-shop workspace has a
+`src/` directory with the app it's building. A content-factory has an `output/` directory
+with published articles. A sales-engine has `data/` with pipeline exports.
+
+The `.canopy/` directory holds runtime state — task queues, active sessions, accumulated
+observations. It's ephemeral. You can delete it and the workspace still works (agents
+just lose their in-progress state).
+
+**Why the separation matters:**
+- You can ship the Canopy Layer without the Project Layer (that's what the marketplace does)
+- You can swap the Canopy Layer on an existing project (re-specialize without losing work)
+- Agents know which files are "instructions" vs "work product" — no conflation
+- Git ignores `.canopy/` by default (runtime state shouldn't be committed)
 
 ### SYSTEM.md — The Brain Transplant
 
