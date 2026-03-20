@@ -35,6 +35,12 @@ workspace/
 │   └── {name}.md
 ├── skills/                ← "Here are your commands"
 │   └── {name}/SKILL.md
+├── teams/                 ← "Here are your team definitions"
+│   └── {name}/TEAM.md
+├── projects/              ← "Here are your active project charters"
+│   └── {name}/PROJECT.md
+├── tasks/                 ← "Here are your task definitions and backlog"
+│   └── {name}/TASK.md
 ├── reference/             ← "Here's your domain knowledge"
 │   └── *.md / *.yaml
 ├── workflows/             ← Multi-step process definitions
@@ -123,6 +129,24 @@ Each skill is a folder with a SKILL.md that defines:
 
 The agent discovers skills by scanning `skills/*/SKILL.md`. Skills are the
 workspace's API — the things the agent can DO in this workspace.
+
+### teams/ — Team Definitions
+
+Each team is a folder with a TEAM.md that defines the team's composition,
+responsibilities, and operating rules. Teams group agents and humans around
+a shared mission. See `protocol/team-format.md` for the full specification.
+
+### projects/ — Project Charters
+
+Each project is a folder with a PROJECT.md that defines the project's scope,
+goals, milestones, and linked tasks. Projects are the unit of work the workspace
+tracks to completion. See `protocol/project-format.md` for the full specification.
+
+### tasks/ — Task Definitions
+
+Each task is a folder with a TASK.md that defines an atomic unit of work: what
+to do, acceptance criteria, assignee, and status. Tasks are the lowest-level
+planning primitive. See `protocol/task-format.md` for the full specification.
 
 ### reference/ — Domain Knowledge
 
@@ -256,6 +280,18 @@ A workspace is protocol-compliant if:
 5. ✅ Reference files are in `reference/`
 6. ✅ SYSTEM.md references available skills and agents
 7. ✅ Workspace is self-contained (doesn't depend on other workspaces)
+
+**Optional manifest types** (include when the workspace manages structured work):
+
+| Directory | Manifest | Purpose |
+|-----------|----------|---------|
+| `teams/{name}/` | `TEAM.md` | Team composition and operating rules |
+| `projects/{name}/` | `PROJECT.md` | Project charter, scope, and milestones |
+| `tasks/{name}/` | `TASK.md` | Atomic unit of work with acceptance criteria |
+
+All three follow the same discovery pattern as skills: the agent scans
+`teams/*/TEAM.md`, `projects/*/PROJECT.md`, and `tasks/*/TASK.md` to build
+its operational context.
 
 ## Relationship to Existing Systems
 
@@ -413,7 +449,13 @@ agent (same gate as new workflow production — see `protocol/company-format.md`
 - `SYSTEM.md` — OptimalOS's workspace entry point (the first workspace built on this protocol)
 - `agents/` — OptimalOS's agent definitions
 - `skills/` — OptimalOS's skill definitions
+- `teams/` — OptimalOS's team definitions
+- `projects/` — OptimalOS's project charters
+- `tasks/` — OptimalOS's task definitions
 - `reference/` — OptimalOS's domain knowledge
+- `protocol/team-format.md` — TEAM.md specification and field reference
+- `protocol/project-format.md` — PROJECT.md specification and field reference
+- `protocol/task-format.md` — TASK.md specification and field reference
 - `architecture/progressive-disclosure.md` — How entities are loaded at each tier
 - OSA repo: `lib/optimal_system_agent/prompt_loader.ex` — workspace detection and SYSTEM.md loading
 - OSA repo: `lib/optimal_system_agent/tools/builtins/list_skills.ex` — skill discovery

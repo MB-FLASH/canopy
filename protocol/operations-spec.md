@@ -111,12 +111,13 @@ id: string                      # Unique slug ("deal-strategist")
 role: string                    # Functional role ("closer", "engineer", "analyst")
 title: string                   # Full title ("Senior Deal Strategist")
 reportsTo: string               # Agent id or "ceo" / "board"
+team: string                    # Team id this agent belongs to (see team-format.md)
 budget: number                  # Monthly USD cap for this agent
 color: string                   # Hex color for UI (#1B4D3E)
 emoji: string                   # Single emoji identifier
 adapter: string                 # Runtime adapter (see Section 10)
 signal: string                  # Signal Theory encoding (see below)
-skills: [string]                # Skill slugs this agent loads
+skills: [string]                # Skill slugs this agent loads (see Section 7)
 context_tier: l0 | l1 | full    # Default context loading depth
 ---
 ```
@@ -180,6 +181,13 @@ Quantified targets. Agent self-evaluates against these.
 - [Metric]: [target]
 ```
 
+### Team Membership
+
+The `team` field assigns an agent to a team defined in `teams/{team-id}.md`. An
+agent can belong to only one team. Teams add a coordination layer on top of the
+org chart — shared budget ceilings, escalation rules, and handoff patterns. See
+`protocol/team-format.md` for the full team definition standard.
+
 ### Org Chart
 
 `reportsTo` fields compose into a directed acyclic org chart. Cycles are invalid.
@@ -200,7 +208,9 @@ board
 ## 4. Goal Hierarchy
 
 Goals live in `company.yaml` under `goals.initiatives` and in individual task files
-under `tasks/`. The hierarchy is:
+under `tasks/`. Complex workstreams use standalone `projects/{project-id}/PROJECT.md`
+files (see `protocol/project-format.md`). Recurring or template tasks use manifest
+files under `tasks/manifests/` (see `protocol/task-format.md`). The hierarchy is:
 
 ```
 Initiative  (north star — months to years)
@@ -219,14 +229,20 @@ title: string
 type: task | bug | decision | research | review
 status: backlog | active | blocked | review | done
 assigned_to: agent-id
+project: project-id            # Project this task contributes to (optional)
 milestone: MIL-007
 priority: critical | high | medium | low
 estimate_hours: number
 evidence_required: string      # What must be true for this to be "done"
+manifest: task-manifest-id     # Source manifest if instantiated from tasks/manifests/
 created_at: ISO8601
 updated_at: ISO8601
 parent: LUN-041                # Optional sub-task parent
 ```
+
+For richer task definitions — recurring tasks, structured acceptance criteria, and
+output format templates — use task manifests in `tasks/manifests/`. See
+`protocol/task-format.md` for the full manifest standard.
 
 ### Milestone Evidence Gates
 
@@ -403,7 +419,9 @@ Triggering agent → reportsTo → reportsTo → ... → board → human notific
 
 ## 7. Skills
 
-Skills are engine-backed slash commands reusable across Operations.
+Skills are engine-backed slash commands reusable across Operations. Agents declare
+which skills they load via the `skills` field in their frontmatter (Section 3).
+The value is a list of skill slugs that correspond to directories under `skills/`.
 
 ### Directory Layout
 
@@ -669,6 +687,14 @@ Complete Operation directory structure:
 │    ├── cto.md
 │    └── {role}.md
 │
+├── teams/                      # Team manifests (protocol/team-format.md)
+│    ├── engineering.md
+│    └── {team-id}.md
+│
+├── projects/                   # Standalone project definitions (protocol/project-format.md)
+│    └── {project-id}/
+│         └── PROJECT.md
+│
 ├── workflows/                  # Orchestration pipelines (Section 5)
 │    ├── sprint.yaml
 │    ├── incident.yaml
@@ -684,7 +710,9 @@ Complete Operation directory structure:
 │    └── {domain}.yaml
 │
 ├── tasks/                      # Active + template tasks (Section 4)
-│    └── {ISSUE_PREFIX}-{n}.yaml
+│    ├── {ISSUE_PREFIX}-{n}.yaml
+│    └── manifests/             # Reusable task manifests (protocol/task-format.md)
+│         └── {task-id}.md
 │
 ├── sessions/                   # Persisted agent sessions (Section 11)
 │    └── {agent-id}/
@@ -704,12 +732,27 @@ Complete Operation directory structure:
 |----------|------------|-------------|
 | `company.yaml` | CEO agent + board | Governance approval |
 | `agents/` | Board | Board approval |
+| `teams/` | Board | Board approval |
+| `projects/` | Project owner agent | Workflow phase only |
 | `workflows/` | CTO agent | CTO + CEO approval |
 | `tasks/` | All agents | Any time |
+| `tasks/manifests/` | CTO agent | Board approval |
 | `sessions/` | Assigned agent | Own session only |
 | `logs/` | System only | Append only, never delete |
 | `reference/` | Designated knowledge agent | Workflow phase only |
 | `skills/` | CTO agent | Board approval |
+
+---
+
+## See Also
+
+| File | What it covers |
+|------|---------------|
+| `protocol/agent-format.md` | Detailed agent definition standard including all frontmatter fields |
+| `protocol/team-format.md` | Team manifests — coordination patterns, escalation rules, budget ceilings |
+| `protocol/project-format.md` | Standalone project definitions — goals, milestones, risk registers |
+| `protocol/task-format.md` | Task manifest standard — recurring tasks, acceptance criteria, evidence gates |
+| `protocol/company-format.md` | Company definition and governance schema |
 
 ---
 

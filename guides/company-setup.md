@@ -414,6 +414,132 @@ Initiative: Ship MVP
 
 ---
 
+## Adding Teams to Your Operation
+
+As agent count grows, the `reportsTo` hierarchy alone becomes insufficient. Teams give you named organizational units with shared budget ceilings and defined coordination patterns.
+
+### When to Create a Team Manifest
+
+Create a `teams/{team-id}.md` manifest when:
+
+- Three or more agents share a functional area (engineering, sales, content)
+- You need a collective budget ceiling separate from individual agent budgets
+- The agents have a repeating handoff pattern worth codifying (e.g., build → review → deploy)
+- You want to assign a manager agent accountable for a group's output quality
+
+For a solo operation (2-4 agents, flat hierarchy), skip teams. The `reportsTo: board` pattern is sufficient.
+
+### Team File Location
+
+```
+{operation-root}/
+├── company.yaml
+├── agents/
+│   └── {agent-id}.md
+└── teams/
+    ├── engineering.md
+    ├── sales.md
+    └── content.md
+```
+
+Each team manifest defines: member list, team budget, manager agent, coordination patterns, and escalation rules. The manager agent's `reportsTo` field in their agent YAML connects the team to the org chart.
+
+See [`protocol/team-format.md`](../protocol/team-format.md) for the full manifest schema, coordination pattern reference, and examples.
+
+---
+
+## Defining Projects
+
+Projects are the primary way you assign bounded workstreams to your agents. They live below Initiatives and above Tasks in the goal hierarchy.
+
+### Inline vs. Standalone
+
+| Approach | When to Use |
+|----------|-------------|
+| Inline in `company.yaml` under `goals.initiatives[].projects` | Simple operations, fewer than 5 active projects, no complex specs |
+| Standalone `projects/{project-id}/PROJECT.md` | Complex workstreams needing risk registers, detailed resource allocations, or their own milestones tracked separately |
+
+Inline declaration is sufficient for most operations starting out. Promote a project to a standalone file when the inline YAML becomes cluttered or when you need to track rich project metadata.
+
+### Project Lifecycle
+
+```
+Defined → Active → Blocked → Completed | Cancelled
+```
+
+A project moves through this lifecycle as its milestones are hit and evidence gates are cleared. When all milestones have passing evidence gates, the project is complete.
+
+Key things a project definition establishes:
+
+- **Owner** -- which agent is accountable for the project's outcome
+- **Milestones** -- measurable checkpoints with evidence gates
+- **Team assignment** -- which team is doing the work
+- **Budget allocation** -- spending tracked at the project level
+
+See [`protocol/project-format.md`](../protocol/project-format.md) for the full schema, milestone format, and evidence gate options.
+
+---
+
+## Task Manifests
+
+Tasks are the atomic unit of work -- assigned to one agent, scoped to one output, resolvable in hours to days. Tasks exist in two forms.
+
+### Ephemeral Tasks vs. Task Manifests
+
+| Form | Location | When to Use |
+|------|----------|-------------|
+| **Ephemeral task** | `tasks/{ISSUE_PREFIX}-{n}.yaml` | Runtime work items -- bugs, features, ad-hoc requests created by agents or the board |
+| **Task manifest** | `tasks/manifests/{task-id}.md` | Recurring or template work worth codifying -- weekly reviews, sprint kickoffs, health checks |
+
+Ephemeral tasks are the default. Task manifests are for work that repeats often enough that re-inventing the instructions each time creates noise. A manifest is a reusable definition; the runtime instantiates it on demand or on schedule, creating an ephemeral task record that links back to the manifest.
+
+### Task Cost Attribution
+
+Every task record references its parent project ID. This closes the cost attribution loop:
+
+```
+Company budget
+  └── Project budget (tracked via task cost roll-up)
+       └── Task cost ($0.15, agent: frontend-dev)
+```
+
+The issue prefix configured in `company.yaml` (`issue_prefix: "MAS-"`) is applied to all generated task IDs.
+
+See [`protocol/task-format.md`](../protocol/task-format.md) for the full ephemeral task schema and task manifest format.
+
+---
+
+## The Full Hierarchy
+
+Every file in an Operation connects to the others. The full structure:
+
+```
+company.yaml                  ← Organizational envelope (identity, budget, governance, goals)
+├── teams/                    ← Named coordination units with shared budgets
+│   └── {team-id}.md
+├── agents/                   ← Individual agent definitions
+│   └── {agent-id}.md
+├── skills/                   ← Reusable executable capabilities
+│   └── {skill-id}/SKILL.md
+├── projects/                 ← Standalone workstream definitions (optional, for complex projects)
+│   └── {project-id}/PROJECT.md
+└── tasks/                    ← Runtime work items + reusable manifests
+    ├── {ISSUE_PREFIX}-{n}.yaml
+    └── manifests/
+        └── {task-id}.md
+```
+
+The binding relationships:
+
+- `company.yaml` defines the budget envelope and goals that all other files operate within
+- `teams/` group agents from `agents/` into coordination units with a shared ceiling
+- `agents/` declare `reportsTo` (placing them in the hierarchy) and `skills` (declaring capabilities)
+- `projects/` reference agents as owners and optionally teams as executors
+- `tasks/` reference project IDs for cost attribution and are assigned to agent IDs
+- `skills/` are invoked by agents at runtime; agents declare them in frontmatter
+
+---
+
 ## Company Setup Checklist
 
 - [ ] `name` and `slug` are set (slug is unique, kebab-case)
@@ -430,3 +556,7 @@ Initiative: Ship MVP
 - [ ] Evidence gates are assigned to every milestone
 - [ ] Agent `reportsTo` chains resolve correctly (no dangling references)
 - [ ] Total per-agent budgets do not exceed company monthly budget
+- [ ] If teams exist, each `teams/{team-id}.md` lists correct members and a valid manager agent
+- [ ] Complex projects (5+ active, or needing rich specs) have standalone `projects/{project-id}/PROJECT.md` files
+- [ ] Recurring work that repeats more than twice has a task manifest in `tasks/manifests/`
+- [ ] `issue_prefix` is set and consistent with task IDs already in use

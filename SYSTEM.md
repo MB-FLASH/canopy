@@ -13,9 +13,12 @@ in this repository.
 
 1. Read this SYSTEM.md (you're doing it now)
 2. Scan `agents/` to know what agent templates are available
-3. Scan `protocol/` to know what specs and standards exist
-4. Scan `operations/` to know what example Operations exist
-5. Ready to help the user create, browse, or validate Operations
+3. Scan `teams/` to know what team structures exist
+4. Scan `projects/` to know what project definitions exist
+5. Scan `tasks/` to know what task manifests are available
+6. Scan `protocol/` to know what specs and standards exist
+7. Scan `operations/` to know what example Operations exist
+8. Ready to help the user create, browse, or validate Operations
 
 ## Core Loop
 

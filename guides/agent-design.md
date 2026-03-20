@@ -242,6 +242,8 @@ This is human-readable methodology. It tells the agent (and any reader) under wh
 
 **At runtime** -- the agent reads `skills/{slug}/SKILL.md` and follows the Process section of that skill definition. The skill file is the contract; the agent body declares when to invoke it.
 
+See [skill-design.md](skill-design.md) for guidance on writing skill definitions that agents invoke.
+
 ### Example: Code Reviewer Agent
 
 Frontmatter:
@@ -443,6 +445,50 @@ See [Proactive Agents](proactive-agents.md) for the full pattern on self-activat
 
 ---
 
+## Agents Within Teams
+
+Individual agents are the nodes; teams are the structure that makes a group of agents a functioning organization.
+
+### How reportsTo Builds the Org Chart
+
+The `reportsTo` field in an agent's YAML frontmatter is what places that agent in the hierarchy. Every agent must declare who it reports to -- either another agent's `id` or `board` for top-level agents. This chain determines escalation paths, delegation authority, and review authority.
+
+```yaml
+reportsTo: tech-lead   # Reports to the tech-lead agent
+reportsTo: board       # Top-level -- reports directly to the human operator
+```
+
+On its own, the `reportsTo` chain produces an org chart. It routes escalations but does not define how agents coordinate on shared work.
+
+### Teams as Coordination Units
+
+Teams group agents into a named unit with a shared budget ceiling, a common mission, and defined coordination patterns. A team manifest lives in `teams/{team-id}.md` and establishes:
+
+- Which agents are members
+- The team's collective budget envelope
+- Handoff patterns between members (e.g., developer → reviewer → deploy)
+- Escalation rules within the team
+- The manager agent accountable for team output
+
+See [`protocol/team-format.md`](../protocol/team-format.md) for the full team manifest schema and coordination pattern examples.
+
+### Agents, Projects, and Tasks
+
+Agents are not just organizational nodes -- they are assigned to work. Agents receive task assignments that reference projects in the goal hierarchy:
+
+- **Projects** (`projects/{project-id}/PROJECT.md`) define bounded workstreams with milestones and evidence gates. An agent owner is named on each project.
+- **Tasks** (`tasks/` and `tasks/manifests/`) are the atomic units assigned to individual agents. Ephemeral tasks are created at runtime; task manifests are reusable definitions for recurring work.
+
+This means an agent can simultaneously:
+- Belong to a team (organizational placement via `reportsTo`)
+- Own a project (accountable for a workstream)
+- Be assigned tasks (executing atomic units of work)
+
+For the project file format, see [`protocol/project-format.md`](../protocol/project-format.md).
+For the task manifest format, see [`protocol/task-format.md`](../protocol/task-format.md).
+
+---
+
 ## Common Mistakes and Anti-Patterns
 
 ### 1. Vague Identity
@@ -507,7 +553,8 @@ Before deploying an agent, verify:
 
 - [ ] YAML frontmatter has all required fields
 - [ ] Signal encoding resolves all 5 dimensions (M, G, T, F, W)
-- [ ] `reportsTo` references an agent that exists in the operation
+- [ ] `reportsTo` references an agent that exists in the operation (or `board` for top-level)
+- [ ] If the agent belongs to a team, the team manifest in `teams/` lists this agent as a member
 - [ ] All 8 body sections are present and substantive
 - [ ] Critical Rules prevent the agent's top 3-5 failure modes
 - [ ] Process section contains actionable methodology (not just advice)
