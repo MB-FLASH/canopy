@@ -338,6 +338,171 @@ Each flow has a different timescale:
 
 ---
 
+## Signal Theory: The Physics
+
+The 4 dimensions describe WHERE things sit. The 3 flows describe HOW things move.
+**Signal Theory describes the LAWS that govern every transition.**
+
+Every time information crosses a boundary — agent to human, agent to agent, workspace
+to workspace, knowledge to context, input to output — it must be encoded as a Signal.
+
+### The Signal: S = (M, G, T, F, W)
+
+Every output resolves 5 encoding dimensions:
+
+```
+S = (Mode, Genre, Type, Format, Structure)
+```
+
+| Dim | Name | What It Resolves | Example Values |
+|-----|------|-----------------|----------------|
+| **M** | Mode | How is it perceived? | linguistic, visual, code, data, mixed |
+| **G** | Genre | What conventionalized form? | spec, brief, report, proposal, pitch, plan, transcript, note |
+| **T** | Type | What does it DO? (speech act) | direct (compel action), inform, commit, decide, express |
+| **F** | Format | What container? | markdown, code, JSON, YAML, HTML |
+| **W** | Structure | Internal skeleton? | Genre-specific template (meddpicc-scorecard, adr-template, etc.) |
+
+All 5 dimensions MUST be resolved before output crosses any boundary.
+Unresolved dimensions = noise. Noise = failed signal.
+
+### The 4 Constraints (Physics)
+
+These are not guidelines. They're laws. Violate any one and the output fails.
+
+| Constraint | Law | Violation |
+|-----------|-----|-----------|
+| **Shannon** (the ceiling) | Don't exceed the receiver's bandwidth | 500 lines when 20 suffice |
+| **Ashby** (the repertoire) | Have enough genre variety for every situation | Prose when a table is needed |
+| **Beer** (the architecture) | Coherent structure at every scale | Orphaned logic, no section headers |
+| **Wiener** (the feedback loop) | Close every loop — verify the receiver decoded | Broadcasting without confirmation |
+
+### Where Signal Theory Applies in the System
+
+Signal Theory governs EVERY boundary crossing in the 3 flows:
+
+**Attention Flow boundaries:**
+```
+Knowledge → Context window
+  Signal Theory determines: WHAT gets loaded (relevance scoring),
+  HOW MUCH (Shannon — don't overload the window),
+  AT WHAT DEPTH (L0 abstract vs L1 summary vs L2 full)
+```
+
+**Production Flow boundaries:**
+```
+Agent → Output artifact
+  Signal Theory determines: WHICH GENRE (brief? spec? report?),
+  FOR WHOM (genre-receiver alignment),
+  HOW STRUCTURED (W dimension — genre skeleton),
+  QUALITY GATE (S/N score ≥ 0.3 or reject)
+
+Agent → Agent (handoff/delegation)
+  Signal Theory determines: Agent A's output genre must match
+  Agent B's expected input genre. Mismatch = rejection.
+
+Agent → Human (delivery)
+  Signal Theory determines: Match the person's genre preference.
+  Salespeople get briefs. Developers get specs. CEOs get decision logs.
+```
+
+**Learning Flow boundaries:**
+```
+Working Memory → Episodic Memory
+  Signal Theory determines: WHAT to compress (key moments with high S/N),
+  what to discard (filler, noise, low-value turns)
+
+Episodic → Semantic (fact extraction)
+  Signal Theory determines: WHAT counts as a fact (high-confidence claims),
+  how to resolve conflicts (contradicting facts → dispute records)
+
+Semantic → Procedural (pattern detection)
+  Signal Theory determines: WHEN a pattern has enough evidence
+  (confidence threshold), how to encode the procedure
+```
+
+### The S/N Quality Gate
+
+Applied at every phase transition and output delivery:
+
+```
+Agent produces output
+       ↓
+┌─────────────────────┐
+│ S/N GATE            │
+│                     │
+│ 1. All 5 dims       │ ← Unresolved dimension? REJECT
+│    resolved?        │
+│ 2. Filler detected? │ ← "Let me think..." REJECT
+│ 3. Genre matches    │ ← Spec to salesperson? REJECT
+│    receiver?        │
+│ 4. Shannon check    │ ← 10x longer than needed? REJECT
+│ 5. Structure?       │ ← No skeleton? REJECT
+│                     │
+│ Score: 0.0 ─── 1.0  │
+└────────┬────────────┘
+         │
+    ≥ 0.3 PASS         < 0.3 REJECT
+         │                    │
+    TRANSMIT            REJECTION NOTICE
+    to receiver         back to agent
+```
+
+S/N thresholds are configurable per workflow phase. Default: 0.3.
+QA deliverables: 0.7. Client-facing: 0.8.
+
+### The 11 Failure Modes
+
+When signals fail, they fail in specific, diagnosable ways:
+
+```
+SHANNON VIOLATIONS (capacity):
+  Routing Failure       → Wrong recipient. Re-route.
+  Bandwidth Overload    → Too much output. Compress.
+  Fidelity Failure      → Meaning lost in encoding. Re-encode.
+
+ASHBY VIOLATIONS (variety):
+  Genre Mismatch        → Wrong form. Use correct genre.
+  Variety Failure       → No genre exists. Create one.
+  Structure Failure     → No skeleton. Impose template.
+
+BEER VIOLATIONS (architecture):
+  Bridge Failure        → No shared context. Add preamble.
+  Herniation Failure    → Incoherence across levels. Re-structure.
+  Decay Failure         → Outdated signal. Audit and update.
+
+WIENER VIOLATIONS (feedback):
+  Feedback Failure      → No confirmation loop. Close it.
+
+CROSS-CUTTING:
+  Adversarial Noise     → Deliberate degradation. Escalate.
+```
+
+### Signal Theory Is Not a Dimension
+
+It's tempting to add Signal Theory as a 5th dimension. It's not.
+
+The 4 dimensions (Persistence, Attention, Authorship, Space) describe the
+**geography** — where things are.
+
+The 3 flows (Attention, Production, Learning) describe the **routes** —
+how things move.
+
+Signal Theory describes the **physics** — the laws that govern what happens
+when information travels those routes. Every transition is an encoding event.
+Every encoding event resolves S=(M,G,T,F,W). Every resolution is checked
+against the 4 constraints. Every violation is a named failure mode.
+
+```
+GEOGRAPHY: 4 dimensions (where things sit)
+ROUTES:    3 flows (how things move)
+PHYSICS:   Signal Theory (laws governing transitions)
+```
+
+The workspace is a coordinate space with 3 flows governed by Signal Theory.
+That's the complete system model.
+
+---
+
 ## Mapping to the Filesystem
 
 Every coordinate maps to a directory:
