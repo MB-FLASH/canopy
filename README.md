@@ -532,13 +532,13 @@ governance, analysis, workspace
 | `full/` | ~30 | Full operation (4 agents, 8 skills, workflows, spec/) |
 | `enterprise/` | ~50 | Enterprise (governance, budgets, compliance, audit) |
 
-### [`architecture/`](architecture/) — 19 Spec Documents
+### [`architecture/`](architecture/) — 20 Spec Documents
 
 Heartbeat protocol, adapter registry, session persistence, budget enforcement,
 task hierarchy, governance, marketplace format, tiered loading, memory architecture,
 signal integration, cross-workspace signals, proactive agents, processing pipeline,
 three-space model, team coordination, workspaces, unified system model, engine layer,
-and more.
+engine reference implementation, and more.
 
 ### [`strategy/`](strategy/) — 7-Phase Orchestration
 
