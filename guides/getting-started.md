@@ -33,6 +33,12 @@ Layer 2: LIBRARIES   agents/ + skills/ + reference/ -- reusable components
 Layer 1: COMPUTE     Adapter layer -- OSA, Claude Code, Cursor, Codex
 ```
 
+Beyond the 5-layer stack, three optional coordination formats add organizational
+structure for larger operations: **teams**, **projects**, and **task manifests**.
+These are not required for a working operation, but they become necessary once
+your operation has 5+ agents, multiple active workstreams, or repeating work
+worth codifying.
+
 ### Layer 1: Compute
 
 The runtime that actually executes your agents. You do not build this layer --
@@ -71,6 +77,130 @@ what it can do, and how to operate.
 
 The organizational envelope -- mission, budget, governance, goal hierarchy.
 This is what turns a collection of agents into a business.
+
+---
+
+## Teams, Projects, and Task Manifests
+
+These three formats extend the core layer stack with coordination structures.
+Add them when the operation grows beyond a few loosely connected agents.
+
+### Teams — `teams/{team-id}.md`
+
+A team groups agents by function, defines a shared budget ceiling, and documents
+how members coordinate. Teams are the unit of accountability between individual
+agents and the company.
+
+```yaml
+---
+name: Engineering
+id: engineering
+manager: cto
+members: [cto, backend-architect, frontend-developer, code-reviewer, sre]
+budget: 3000
+signal: S=(data, report, inform, markdown, sprint-status)
+---
+```
+
+The body defines the team's mission, coordination patterns (who does what in what
+order), escalation rules, and handoff protocols between members.
+
+**Add a team when:**
+- You have 3+ agents in the same functional area
+- You want a budget ceiling for a function (not just per-agent limits)
+- You want to document how agents in that function pass work to each other
+
+See `protocol/team-format.md` for the full standard.
+
+### Projects — `projects/{project-id}/PROJECT.md`
+
+A project is a time-scoped workstream — weeks to months — with milestones,
+a dedicated budget, and a defined owner. Projects sit between Initiatives
+(in `company.yaml`) and Tasks (in `tasks/`).
+
+```yaml
+---
+name: Q2 Platform Launch
+id: q2-launch
+owner: tech-lead
+team: engineering
+status: active
+budget: 5000
+milestones:
+  - id: mvp
+    name: MVP Complete
+    target: 2026-04-01
+    evidence_gate: tests_pass+review_approved
+  - id: beta
+    name: Beta Launch
+    target: 2026-05-15
+    evidence_gate: human_approval
+---
+```
+
+The body holds project goals (measurable outcomes), resource allocation by phase,
+a risk register, and open questions that must be resolved before certain milestones.
+
+Simple operations can declare projects inline in `company.yaml` under
+`goals.initiatives[].projects`. Standalone `PROJECT.md` files are for workstreams
+that need detailed specs, risk tracking, or dependency management.
+
+**Add a project when:**
+- A workstream spans multiple weeks and multiple agents
+- You need milestone tracking with evidence gates
+- You want to allocate budget at the workstream level
+
+See `protocol/project-format.md` for the full standard.
+
+### Task Manifests — `tasks/manifests/{task-id}.md`
+
+A task manifest is a reusable task definition — the permanent form of a task that
+will be executed repeatedly or instantiated on a schedule. Manifests hold the
+instructions, acceptance criteria, output format, and (optionally) a cron schedule.
+
+```yaml
+---
+name: Monday Review
+id: monday-review
+assignee: ceo
+project: null
+priority: medium
+type: recurring
+schedule:
+  cron: "0 9 * * 1"
+  timezone: America/Chicago
+evidence_gate: null
+signal: S=(data, report, inform, markdown, team-status)
+---
+```
+
+Manifests separate the permanent definition (what to do, how to judge it done)
+from the ephemeral runtime record (who did it, when, what it cost). The runtime
+instantiates a manifest into a `tasks/{ISSUE_PREFIX}-{n}.yaml` record each time
+the schedule fires or the manifest is triggered.
+
+**Add a task manifest when:**
+- A task recurs on a schedule (weekly reviews, daily digests, sprint kickoffs)
+- A task pattern is used across multiple projects (code reviews, health checks)
+- You want to codify the instructions and acceptance criteria for a category of work
+
+See `protocol/task-format.md` for the full standard.
+
+### How They Fit Together
+
+```
+company.yaml             ← Mission, budget, governance, Initiatives
+  └── teams/engineering.md    ← Team: budget ceiling + coordination patterns
+       └── agents/cto.md      ← Agent: role, skills, signal encoding
+       └── agents/backend-architect.md
+  └── projects/q2-launch/PROJECT.md  ← Project: milestones, risks, owner
+       └── tasks/ACM-001.yaml        ← Ephemeral task (runtime-created)
+       └── tasks/manifests/code-review.md  ← Reusable task definition
+```
+
+None of these formats depend on the others to function. A project can exist
+without a team. A task manifest can exist without a project. Add each one
+when the operation needs it, not before.
 
 ---
 
@@ -210,6 +340,13 @@ my-operation/
 │   ├── backend-dev.md
 │   └── qa-engineer.md
 │
+├── teams/                 <- HOW agents are grouped and coordinated (optional).
+│   └── engineering.md     <- Team: manager, members, budget ceiling, patterns
+│
+├── projects/              <- WHAT workstreams are active (optional).
+│   └── q2-launch/
+│       └── PROJECT.md     <- Project: milestones, budget, risks, owner
+│
 ├── skills/                <- WHAT agents can DO.
 │   ├── build/
 │   │   └── SKILL.md       <- /build command definition
@@ -232,8 +369,11 @@ my-operation/
 │   ├── standard.md        <- Normal phase transition
 │   └── qa-fail.md         <- QA rejection with fix instructions
 │
-├── tasks/                 <- ACTIVE work items (created at runtime).
-│   └── DS-001.yaml
+├── tasks/                 <- ACTIVE work items (created at runtime) + reusable definitions.
+│   ├── DS-001.yaml        <- Ephemeral task record (runtime-created)
+│   └── manifests/         <- Reusable task definitions (committed)
+│       ├── monday-review.md
+│       └── code-review.md
 │
 ├── sessions/              <- PERSISTED agent state (created at runtime).
 │
@@ -248,7 +388,10 @@ my-operation/
 | SYSTEM.md | tasks/*.yaml |
 | company.yaml | sessions/* |
 | agents/*.md | logs/*.log |
+| teams/*.md | |
+| projects/**/PROJECT.md | |
 | skills/*/SKILL.md | |
+| tasks/manifests/*.md | |
 | workflows/*.md | |
 | reference/*.md | |
 | handoffs/*.md | |
@@ -346,6 +489,16 @@ Workflows for content ideation through multi-platform publishing. Budget: $4,000
 | [Proactive Agents](proactive-agents.md) | You want agents that self-activate on schedule |
 | [Company Setup](company-setup.md) | You need to configure budgets, governance, goals |
 | [Signal Theory Quickstart](signal-theory-quickstart.md) | You want to understand the quality framework |
+
+### Protocol Reference (once you need the details)
+
+| Protocol File | What It Defines |
+|--------------|----------------|
+| `protocol/team-format.md` | TEAM.md standard — members, budgets, coordination patterns, escalation |
+| `protocol/project-format.md` | PROJECT.md standard — milestones, evidence gates, risk register |
+| `protocol/task-format.md` | Task manifest standard — recurring tasks, instructions, acceptance criteria |
+| `protocol/workspace-protocol.md` | Workspace structure + external skill/agent references |
+| `architecture/progressive-disclosure.md` | How context loads in tiers — Tier 0/1/2 resolution graph |
 
 ---
 

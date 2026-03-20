@@ -287,11 +287,133 @@ The agent is the phone. The workspace is the app.
 Nobody buys a phone for the phone. They buy it for the apps.
 Nobody will use an agent for the agent. They'll use it for the workspaces.
 
+## External Skill and Agent References
+
+Operations can reference skills and agents defined outside the workspace without
+copying them in. External references are resolved at activation time — when the
+referencing agent is loaded to Tier 1 — using provenance metadata declared inline
+in the `skills` or agents list.
+
+### Why External References
+
+Vendoring (copying files into the workspace) creates maintenance burden. When an
+upstream skill updates, every operation that copied it must update manually. External
+references let operations consume shared skill libraries while staying in sync with
+upstream changes.
+
+External references are appropriate when:
+- A skill is maintained by an external team or community
+- Multiple operations share the same skill without wanting to diverge
+- The skill is large enough that vendoring it would inflate the workspace
+
+Local skills (defined in `skills/`) are appropriate when:
+- The skill is specific to this operation
+- You need full control over the skill's behavior
+- The operation must work offline or without external resolution
+
+### Reference Syntax
+
+In an agent's `skills` list, a reference entry replaces the bare skill slug with
+a structured object:
+
+```yaml
+# In an agent's frontmatter skills list
+
+skills:
+  - review                           # local skill — resolved from skills/review/SKILL.md
+  - ref: remotion-best-practices     # external reference — slug for runtime use
+    source: github
+    repo: remotion-dev/skills
+    path: skills/remotion
+    pin: main
+    license: MIT
+  - ref: elixir-otp-patterns
+    source: github
+    repo: optimalos/skill-library
+    path: skills/elixir/otp-patterns
+    pin: v2.1.0
+    license: Apache-2.0
+  - ref: meddpicc-scoring
+    source: url
+    url: https://skills.optimalos.com/sales/meddpicc/SKILL.md
+    pin: sha256:a1b2c3d4e5f6...
+    license: MIT
+```
+
+### Reference Fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `ref` | yes | Local slug the runtime uses to identify this skill |
+| `source` | yes | Resolution method: `github`, `url`, or `registry` |
+| `repo` | yes (if `source: github`) | GitHub repo in `owner/repo` format |
+| `path` | yes (if `source: github`) | Path within the repo to the skill directory or SKILL.md |
+| `url` | yes (if `source: url`) | Direct URL to the SKILL.md file |
+| `pin` | yes | Branch name, tag, or commit SHA (for `github`); SHA256 hash (for `url`) |
+| `license` | yes | SPDX license identifier |
+
+### Pin Strategy
+
+The `pin` field determines how the reference is resolved:
+
+| Pin Value | Behavior | Use When |
+|-----------|----------|----------|
+| Branch name (e.g., `main`) | Always resolves to the branch HEAD | Rapid iteration; acceptable to get upstream changes |
+| Tag (e.g., `v2.1.0`) | Resolves to a specific release | Production operations; controlled update cadence |
+| Commit SHA | Resolves to an exact commit | Maximum stability; never changes without explicit update |
+| SHA256 hash | Verifies URL content hash | Direct URL references where version tagging is unavailable |
+
+For production operations, pin to a tag or commit SHA. Branch pins create implicit
+dependency on upstream changes and should be used only during development.
+
+### Provenance Tracking
+
+The runtime records all external reference resolutions in `logs/activity.log`:
+
+```
+{ISO8601} | {agent-id} | skill_ref_resolved | {ref-slug} | {resolved-sha} | 0.00
+```
+
+This creates an audit trail: for any session, you can determine exactly which
+version of every external skill was used. This is critical for debugging and
+compliance in production operations.
+
+### Resolution at Activation
+
+External references are resolved when the referencing agent is activated to Tier 1
+(see `architecture/progressive-disclosure.md`). Resolution:
+
+1. Check the local reference cache (`skills/.refs/{ref-slug}/`)
+2. If cached and pin matches: use cached version
+3. If not cached or pin is a branch name: fetch from the external source
+4. Verify the fetched content matches the pin (SHA comparison for tags and commits)
+5. Write to local cache
+6. Load the SKILL.md into the agent's active skill set
+
+The local reference cache is not committed to version control. It is populated
+at runtime and can be cleared without affecting workspace behavior.
+
+### Security Considerations
+
+External references introduce supply chain risk. Mitigations:
+
+- Always pin to a tag or commit SHA in production (never `main` or `latest`)
+- Include the `license` field; the runtime can enforce license allowlists
+- Review external skill content before pinning to a new version
+- Treat external skills as untrusted input: the governance layer applies the
+  same approval gates to externally-sourced skill invocations as to local ones
+
+Board approval is required before adding an external reference to a production
+agent (same gate as new workflow production — see `protocol/company-format.md`).
+
+---
+
 ## See Also
 
 - `SYSTEM.md` — OptimalOS's workspace entry point (the first workspace built on this protocol)
 - `agents/` — OptimalOS's agent definitions
 - `skills/` — OptimalOS's skill definitions
 - `reference/` — OptimalOS's domain knowledge
+- `architecture/progressive-disclosure.md` — How entities are loaded at each tier
 - OSA repo: `lib/optimal_system_agent/prompt_loader.ex` — workspace detection and SYSTEM.md loading
 - OSA repo: `lib/optimal_system_agent/tools/builtins/list_skills.ex` — skill discovery

@@ -189,6 +189,15 @@ sales-engine/
 │   └── contracts/
 │       └── workspace.spec.md         Self-validation and drift detection
 │
+├── teams/                         ← Org subtrees within the operation
+│   └── outbound/TEAM.md             Members, shared budget, coordination rules
+│
+├── projects/                      ← Planned work with milestones and resource allocation
+│   └── q2-pipeline/PROJECT.md       Goals, milestones, budget envelope, assigned teams
+│
+├── tasks/                         ← Portable, reusable task definitions
+│   └── qualify-lead/TASK.md          Schedule, evidence gates, default assignee
+│
 │  ═══════════════════════════════════════════════════════
 │  L3 — ENGINE (invisible to agent)
 │  Skills call the engine. Zero tokens in context window.
@@ -232,6 +241,28 @@ built. Approves, edits, or sends back for revision.
 
 ## Features
 
+### Progressive Disclosure
+
+Every entity in a Canopy workspace — agents, skills, teams, projects, tasks — exposes
+itself in three tiers. The agent requests only what it needs, when it needs it.
+
+```
+Tier 0 (Catalog)    Name + one-line description only. ~100 tokens per entity.
+                    Used when scanning "what's available?" — no full loads.
+
+Tier 1 (Activation) Full manifest body loaded on demand. ~2K tokens per entity.
+                    Used when the agent selects a specific agent, skill, or task
+                    to work with.
+
+Tier 2 (Full)       All referenced assets loaded: scripts, linked reference docs,
+                    external skill bodies, evidence schemas, sub-tasks.
+                    Used only for deep execution.
+```
+
+The catalog is always cheap. The full manifest costs only when it's actually used.
+Activation happens on explicit selection, not bulk prefetch. This is how Canopy
+achieves 96% context reduction vs systems that load everything upfront.
+
 ### Tiered Context Loading
 
 The folder structure IS the context architecture. Layer 0 is what the agent reads
@@ -244,10 +275,11 @@ L2: reference/ + workflows/ + spec/  Deep context (full content, via search)
 L3: engine/                          Invisible (0 tokens, powers skills)
 ```
 
-No other system does this. Traditional agent frameworks dump everything into the prompt.
+Progressive Disclosure governs how L1 and L2 load: the agent always sees the catalog
+first, activates what it needs, and goes full only when execution demands it. No other
+system does this. Traditional agent frameworks dump everything into the prompt.
 File-based systems use ripgrep on flat directories. Canopy loads context in tiers —
-abstracts first, summaries on-demand, full content only when needed. 96% cost reduction
-vs traditional RAG.
+abstracts first, full content only when needed. 96% cost reduction vs traditional RAG.
 
 ### Heartbeat Protocol
 
@@ -376,6 +408,52 @@ serve as inter-phase communication. Three depths: Deep, Standard, Quick.
 
 See [`architecture/processing-pipeline.md`](architecture/processing-pipeline.md).
 
+### Manifest System (Teams, Projects, Tasks)
+
+Three first-class manifest types give operations a structured org layer on top of agents
+and skills:
+
+**`TEAM.md`** — Define an org subtree. Teams group agents, own a shared budget slice,
+and declare their coordination protocol. A team is not just a list of names — it's a
+governed unit with its own spending authority and escalation rules.
+
+```
+teams/outbound/TEAM.md
+  members: [prospector, closer, researcher]
+  budget: $800/mo (allocated from workspace envelope)
+  coordination: tasks/ + inbox messaging
+  escalation: → director
+```
+
+**`PROJECT.md`** — Define planned work with milestones, budget allocation, and resource
+assignments. Projects map to the Initiatives → Milestones → Issues task hierarchy and
+carry explicit evidence gates — the project isn't "done" until the gates pass.
+
+```
+projects/q2-pipeline/PROJECT.md
+  goal: 40 qualified opportunities by June 30
+  milestones: [prospecting-complete, demos-scheduled, close-ready]
+  budget: $2,000 (draws from team:outbound allocation)
+  evidence: pipeline.json opportunity count ≥ 40
+```
+
+**`TASK.md`** — Portable, reusable task definitions. A TASK.md is not a one-time work
+item — it's a template that can be scheduled, assigned to different agents, and executed
+repeatedly. Carries its own schedule, evidence gates, and default assignee. An agent
+picks it up, completes the evidence gate, and the task auto-closes.
+
+```
+tasks/qualify-lead/TASK.md
+  trigger: new lead added to pipeline.json
+  assignee: closer (default), fallback: prospector
+  evidence: MEDDPICC score ≥ 6 written to task comment
+  schedule: on-demand
+```
+
+Manifests compose. A project references tasks. A team owns projects. The workspace
+orchestrates teams. The whole structure is just folders and markdown — but underneath it's
+a governed org chart with budgets, assignments, and evidence-gated completion.
+
 ### Multi-Agent Team Coordination
 
 Spawn teams of agents that coordinate via filesystem:
@@ -387,6 +465,57 @@ Spawn teams of agents that coordinate via filesystem:
 - **Liveness detection** — dead agents auto-release locks
 
 See [`architecture/team-coordination.md`](architecture/team-coordination.md).
+
+### Skills as First-Class Agent Capabilities
+
+Skills are no longer just slash commands in a folder — they're declared capabilities
+that agents carry. An agent's frontmatter lists which skills it activates, and the
+agent body specifies exactly when each one fires:
+
+```yaml
+# agents/closer.md (frontmatter)
+skills:
+  - qualify
+  - close-plan
+  - battlecard
+```
+
+```
+# agents/closer.md (body — Skills section)
+## Skills
+
+| Skill | Activates When |
+|-------|---------------|
+| /qualify | New opportunity enters pipeline; score not yet recorded |
+| /close-plan | Opportunity reaches Proposal stage |
+| /battlecard | Competitor mentioned in call notes or deal context |
+```
+
+The agent knows what it can do and when to reach for it — without being told in every
+prompt. Skills activate on context, not on explicit invocation. A closer that
+recognizes a competitor mention and runs `/battlecard` unprompted is a closer that
+actually knows its job.
+
+### External Skill References
+
+Skills don't have to live inside the workspace. Operations can reference skills from
+external libraries — keeping workspaces lean and skills versioned and shared:
+
+```yaml
+# skills/qualify/SKILL.md (frontmatter)
+source: library://canopy/skills/qualify@v2.1.0
+pin: sha256:a3f9...
+license: MIT
+```
+
+The workspace resolves the reference at activation time (Tier 1 load). Provenance is
+tracked: source URL, pinned version, license. If the external skill changes, the pin
+locks the workspace to the version it was tested against. You update deliberately, not
+accidentally.
+
+This means the same `/qualify` skill can be shared across ten workspaces without
+copying it ten times. Fix a bug in the library — publish a new version — each workspace
+opts in on its own schedule.
 
 ### Pluggable Engine Backends
 
@@ -497,8 +626,14 @@ context and picks up whatever the new workspace provides. Base config persists.
 | `workspace-protocol.md` | SYSTEM.md + agents/ + skills/ + reference/ standard |
 | `signal-theory.md` | S=(M,G,T,F,W) universal signal encoding |
 | `agent-format.md` | YAML frontmatter + body sections for agent definitions |
+| `skill-format.md` | SKILL.md schema: trigger, steps, evidence, external refs, agent declarations |
+| `team-format.md` | TEAM.md schema: members, budget slice, coordination rules, escalation |
+| `project-format.md` | PROJECT.md schema: milestones, budget envelope, evidence gates, resource allocation |
+| `task-format.md` | TASK.md schema: schedule, assignee, evidence gates, portability contract |
 | `company-format.md` | company.yaml schema (org chart, budgets, governance) |
 | `spec-layer.md` | PROCEDURES.md, WORKFLOW.md, MODULES.md formats |
+| `progressive-disclosure.md` | Three-tier catalog/activation/full loading model |
+| `external-refs.md` | External skill reference format: source, pin, license, resolution |
 | `verification.md` | Spec contracts and drift detection |
 
 ### [`library/`](library/) — 168 Agents, 114 Skills
@@ -633,7 +768,10 @@ pieces right. None got the whole thing.
 |---|---|---|
 | **Requires** | Server + DB + UI | A folder |
 | **Templates** | Usually "coming soon" | 168 agents, 114 skills, 5 operations |
-| **Context mgmt** | Flat prompt injection | L0-L3 tiered loading |
+| **Context mgmt** | Flat prompt injection | L0-L3 tiered loading + progressive disclosure |
+| **Org structure** | None | Teams, projects, tasks — governed manifests |
+| **Skill ownership** | Prompt-level | Declared in agent frontmatter, activated by context |
+| **Skill reuse** | Copy-paste | External refs with provenance (source + pin + license) |
 | **Classification** | None | Signal Theory auto-routing |
 | **Knowledge** | None | 6R pipeline, knowledge graph, learning loop |
 | **Runtimes** | 1-6 | 10+ |
@@ -652,7 +790,11 @@ Budget Enforcement   — 3-tier cost control (visibility → soft alert → hard
 6R Pipeline          — Record → Reduce → Reflect → Reweave → Verify → Rethink
 Three-Space Model    — Self (identity) + Knowledge (graph) + Ops (ephemeral)
 Tiered Loading       — L0/L1/L2/L3 context hierarchy, 96% cost reduction
+Progressive Disclosure — Tier 0/1/2 catalog→activation→full loading within each layer
 Signal Theory        — S=(M,G,T,F,W) classification + auto-routing + quality gates
+Manifest System      — TEAM.md, PROJECT.md, TASK.md: governed org layer over agents
+Skill Declarations   — Agents declare skills in frontmatter; activation rules in body
+External Skill Refs  — Reference library skills by URL + pin; no vendoring required
 Simulation Engine    — Monte Carlo scenario planning + impact analysis
 Foresight Memory     — Extract forward-looking predictions with time bounds
 Agentic Retrieval    — Multi-round search with LLM sufficiency judgment
