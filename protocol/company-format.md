@@ -131,16 +131,43 @@ Triggering agent -> reportsTo -> reportsTo -> ... -> board -> human notification
 If the chain is exhausted without resolution, the incident is written to
 `logs/escalations.log` and a human notification is sent.
 
+## Organizational Hierarchy
+
+The full hierarchy has 5 layers: Company → Division → Department → Team → Agent.
+`company.yaml` defines the company envelope. The layers below are defined in their
+own protocol specs and instantiated as files in the operation:
+
+```
+company.yaml                              # Company-level config
+├── divisions/{id}.md                     # 5 divisions (division-format.md)
+│   └── departments/{division}/{id}.md    # 20 departments (department-format.md)
+│       └── teams/{id}.md                 # 43 teams (team-format.md)
+│           └── agents/{division}/{department}/{team}/{id}.md # 169 agents (agent-format.md)
+```
+
+| Layer | Spec | Governs |
+|-------|------|---------|
+| Company | `company-format.md` | Mission, total budget, governance policy |
+| Division | `division-format.md` | Strategic envelope, division budget ceiling, cross-department coordination |
+| Department | `department-format.md` | Domain ownership, department budget ceiling, cross-team coordination |
+| Team | `team-format.md` | Operational coordination, team budget, agent composition |
+| Agent | `agent-format.md` | Individual behavior, signal encoding, tool access |
+
+Budget enforcement cascades downward: company → division → department → team → agent.
+The most restrictive limit in the chain applies at every moment.
+
 ## Org Chart
 
 The org chart is composed from `reportsTo` fields across all agent files.
 `company.yaml` does not define the org chart directly — it emerges from agent
-definitions.
+definitions. The CEO agent (`reportsTo: null`) is the root. Division heads report
+to the CEO. Department heads report to division heads. Team managers report to
+department heads. Team members report to team managers.
 
 Rules:
 - Must be a directed acyclic graph (no cycles)
-- Root node is always an agent with `reportsTo: null`
-- Every agent must have a path to the root
+- Root node is always the CEO with `reportsTo: null`
+- Every agent must have a path to the root via `reportsTo`
 - Escalation always traverses upward
 
 ## Example
@@ -195,3 +222,19 @@ A `company.yaml` is valid if:
 5. All initiative/project/milestone IDs are unique
 6. Evidence gates reference valid gate types
 7. `issue_prefix` ends with `-` and is uppercase
+
+---
+
+## Signal Theory Position
+
+This spec implements **Layer 1 (Network) + Layer 7 (Governance)** of the Optimal System architecture.
+
+`company.yaml` defines the Signal Network topology. The org chart that emerges from `reportsTo` fields is a directed graph of signal-carrying nodes — departments are subnets, agents are endpoints, and budget ceilings constrain signal throughput at each node. The file does not merely describe an organization; it encodes the network's routing rules.
+
+The governance block — board approval gates, escalation chains, and budget enforcement tiers — IS System 5 (Policy) encoded in YAML. These rules constrain what every downstream agent and team can do, making `company.yaml` the policy anchor for the entire Operation.
+
+**Most relevant governing principles:**
+- **Beer (organizational structure as recursive VSM)** — The initiative → project → milestone → task hierarchy mirrors the 5-subsystem VSM recursion: each level is viable on its own while remaining coherent with the level above.
+- **Wiener (escalation chains close feedback loops)** — The `escalation_chain` field is a Wiener feedback mechanism: failures propagate upward until a capable handler is found or a human is notified.
+
+See `architecture/optimal-system-mapping.md` for the canonical layer mapping.

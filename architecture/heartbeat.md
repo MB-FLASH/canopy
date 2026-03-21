@@ -382,6 +382,19 @@ adapter_config:
 
 ---
 
+## Feedback Loop Position
+
+The heartbeat protocol implements **Layer 6 (The Feedback Loop)** of the Optimal System.
+
+- The wake → execute → persist cycle IS circular causality — results feed back into the system as new data
+- Step 8 ("always comment before exiting") enforces **Wiener's constraint**: every execution closes its feedback loop. An agent that exits without reporting has created an open loop — a Wiener violation.
+- Orphaned run detection IS a feedback failure made visible — the system detects when loops fail to close
+- The 9-step protocol ensures that no agent execution is a broadcast without confirmation
+
+See `architecture/optimal-system-mapping.md` for the full 7-layer mapping.
+
+---
+
 ## Related Docs
 
 - [adapters.md](adapters.md) — How the agent runtime is invoked (step 7)
@@ -390,6 +403,10 @@ adapter_config:
 - [budgets.md](budgets.md) — Budget checks that gate execution
 - [governance.md](governance.md) — Board controls that can pause/terminate agents
 - [workspaces.md](workspaces.md) — How the working directory is resolved (step 6)
+- [self-healing.md](self-healing.md) — Step 7 failures (state: failed, errored) trigger healing episode creation; orphaned run detection feeds the healing subsystem
+- [context-mesh.md](context-mesh.md) — Step 6 (Understand Context) reads from the team's keeper; step 8 (Update and Comment) writes discoveries to the keeper
+- [peer-protocol.md](peer-protocol.md) — Step 3 inbox polling processes handoffs and review requests delivered by peer agents
+- [decision-graph.md](decision-graph.md) — Step 8 creates decision nodes for significant choices made during execution; step 6 loads decision context for the current task
 
 ---
 

@@ -156,3 +156,22 @@ Optimal encoding converges on **minimum decoding effort** at the receiver:
 
 What the receiver experiences as clarity, elegance, or "just right" — that is the path
 of least resistance.
+
+---
+
+## Optimal System Position
+
+This spec defines **Layer 2 (The Signal)** of the Optimal System architecture — the
+encoded intent that flows through the network. But Signal Theory governs ALL 7 layers:
+
+| Layer | How Signal Theory Applies |
+|-------|--------------------------|
+| L1 Network | Routing rules determine which signals reach which nodes |
+| L2 Signal | This spec — S=(M,G,T,F,W) encoding, quality gates, failure modes |
+| L3 Composition | Micro-structure within each signal (compositional hierarchy) |
+| L4 Interface | Progressive disclosure = Shannon constraint on the interface layer |
+| L5 Data | Storage substrate must preserve signal fidelity across the DIKW hierarchy |
+| L6 Feedback | Quality gates and rejection notices ARE the feedback loop |
+| L7 Governance | System 5 (Policy) defines the encoding standards all agents follow |
+
+See `architecture/optimal-system-mapping.md` for the canonical mapping.

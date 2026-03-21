@@ -78,8 +78,8 @@ Global skills              Workspace skills                 Both available
 ./scripts/install.sh --tool osa
 
 # Or copy specific categories
-cp library/agents/engineering/*.md ~/.osa/agents/
-cp library/agents/specialized/*.md ~/.osa/agents/
+cp library/agents/technology/software-engineering/*/*.md ~/.osa/agents/
+cp library/agents/operations/*/*.md ~/.osa/agents/
 ```
 
 ## Multiple Workspaces

@@ -459,3 +459,19 @@ agent (same gate as new workflow production — see `protocol/company-format.md`
 - `architecture/progressive-disclosure.md` — How entities are loaded at each tier
 - OSA repo: `lib/optimal_system_agent/prompt_loader.ex` — workspace detection and SYSTEM.md loading
 - OSA repo: `lib/optimal_system_agent/tools/builtins/list_skills.ex` — skill discovery
+
+---
+
+## Signal Theory Position
+
+This spec implements **Layer 5 (Data) + Layer 7 (Governance)** of the Optimal System architecture.
+
+The directory layout — `agents/`, `skills/`, `teams/`, `reference/` — IS the data layer: it is the physical substrate where organizational intent is stored, versioned, and distributed. These directories are not scaffolding; they are the storage topology for encoded knowledge.
+
+SYSTEM.md IS Beer's System 5 (Policy). It carries the identity and boot rules that constrain everything downstream — the first signal a runtime decodes when entering a workspace. Nothing in the workspace overrides it.
+
+**Most relevant governing principles:**
+- **Beer (viable structure at every scale)** — The two-layer separation (Canopy / Project) ensures structural coherence: instructions and work product never conflate, and the workspace remains viable at every size from micro to enterprise.
+- **Shannon (progressive loading prevents context overflow)** — Reference files, agents, and skills are loaded on-demand from the data layer, not injected wholesale at boot. This respects channel capacity limits.
+
+See `architecture/optimal-system-mapping.md` for the canonical layer mapping.

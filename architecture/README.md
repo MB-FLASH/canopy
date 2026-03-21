@@ -33,6 +33,13 @@
 | 17 | [processing-pipeline.md](processing-pipeline.md) | 6R knowledge pipeline — Record, Reduce, Reflect, Reweave, Verify, Rethink with fresh context per phase |
 | 18 | [three-space-model.md](three-space-model.md) | Self/Knowledge/Ops separation — identity vs. growing graph vs. ephemeral scaffolding |
 | 19 | [team-coordination.md](team-coordination.md) | Multi-agent coordination — leader-worker hierarchy, filesystem messaging, git worktree isolation, team templates |
+| 20 | [optimal-system-mapping.md](optimal-system-mapping.md) | Canonical mapping of Canopy to the 7-layer Optimal System architecture from Signal Theory |
+| 21 | [context-mesh.md](context-mesh.md) | Per-team context keeper GenServers — overflow context storage with 3 retrieval modes, 4-factor staleness scoring, and token budget allocation |
+| 22 | [decision-graph.md](decision-graph.md) | DAG-structured decision tracking — 5 node types, 10 edge types, confidence cascade, pivot chains, subtree merging, and narrative generation |
+| 23 | [self-healing.md](self-healing.md) | Autonomous error recovery — 8 error categories, 4 severities, ephemeral healing agents with budget caps, retry/escalation protocol |
+| 24 | [conversations.md](conversations.md) | Structured multi-agent dialogue — 4 conversation types, 3 turn strategies, structured debate with convergence tracking, Weaver synthesis, persona system |
+| 25 | [peer-protocol.md](peer-protocol.md) | Agent-to-agent coordination — structured handoffs, peer review gates, task negotiation, cross-team discovery, region-level file locking |
+| 26 | [speculative-execution.md](speculative-execution.md) | Anticipatory work protocol — predict likely next tasks, assumption tracking, isolated temp execution, atomic promote vs. discard |
 
 ---
 
@@ -96,12 +103,55 @@
    └─────────────┘
 ```
 
+The new `optimal-system-mapping.md` (entry 20) shows how ALL architecture specs in this index map to the 7 layers of the Optimal System — providing a single canonical cross-reference between Canopy's implementation documents and the Signal Theory architectural model.
+
+## Runtime Subsystems (Entries 21–26)
+
+Six runtime subsystems that extend the control plane for long-running, multi-agent work:
+
+```
+   RUNTIME LAYER
+
+   ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
+   │  CONTEXT MESH   │   │ DECISION GRAPH  │   │  SELF-HEALING   │
+   │  Per-team keeper│   │  DAG: decisions,│   │  Error classify,│
+   │  3 retrieval    │   │  goals, pivots  │   │  ephemeral fix  │
+   │  modes, 4-factor│   │  confidence     │   │  agents, escal. │
+   │  staleness score│   │  cascade        │   │                 │
+   └────────┬────────┘   └────────┬────────┘   └────────┬────────┘
+            │                     │                      │
+            │  feeds context       │  tracks decisions    │  repairs failures
+            │                     │                      │
+   ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
+   │  CONVERSATIONS  │   │  PEER PROTOCOL  │   │  SPECULATIVE    │
+   │  Brainstorm,    │   │  Handoffs, peer │   │  EXECUTION      │
+   │  design_review, │   │  review gates,  │   │  Predict, isolate│
+   │  red_team,      │   │  negotiation,   │   │  promote/discard│
+   │  user_panel     │   │  file locking   │   │                 │
+   └─────────────────┘   └─────────────────┘   └─────────────────┘
+
+   ↕ all 6 subsystems sit above HEARTBEAT (execution) and below GOVERNANCE (oversight)
+```
+
+## Organizational Hierarchy Specs
+
+These protocol specs define the 4-level hierarchy that organizes all agents:
+
+| Layer | Spec | Instance Files | Count |
+|-------|------|----------------|-------|
+| Division | `protocol/division-format.md` | `library/divisions/{id}.md` | 5 |
+| Department | `protocol/department-format.md` | `library/departments/{division-id}/{id}.md` | 20 |
+| Team | `protocol/team-format.md` | `library/teams/{id}.md` | 43 |
+| Agent | `protocol/agent-format.md` | `library/agents/{division}/{department}/{team}/{id}.md` | 169 |
+
+The hierarchy reference design is in `docs/hierarchy.md`.
+
 ## Source Material
 
 These specs cover three domains:
 
 1. **Control Plane** — Company orchestration, agents, heartbeat, tasks, budgets, adapters, governance
-2. **Agent Definitions** — YAML frontmatter + markdown body, signal encoding, org chart
+2. **Organizational Hierarchy** — Divisions, departments, teams, agents, reporting chains, budget rollup
 3. **Signal Theory** — Quality gates, tiered loading, knowledge graph, learning loop
 
 The `protocol/operations-spec.md` in this repo is the unified spec. The architecture files

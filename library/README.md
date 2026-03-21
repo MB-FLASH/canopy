@@ -36,7 +36,7 @@ engine or toolchain.
 
 ```bash
 # Copy agents into your workspace
-cp library/agents/engineering/tech-lead.md my-operation/agents/
+cp library/agents/technology/software-engineering/application-development/tech-lead.md my-operation/agents/
 
 # Copy skills into your workspace
 cp -r library/skills/development/build/ my-operation/skills/

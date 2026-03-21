@@ -9,6 +9,27 @@ This workspace is NOT an Operation itself. It is the **factory** that creates Op
 You help users browse, compose, scaffold, and validate Operations from the components
 in this repository.
 
+## Theoretical Foundation
+
+This workspace implements the **Optimal System** architecture defined in *Signal Theory:
+The Architecture of Optimal Intent Encoding*. Every protocol, architecture spec, and
+file structure in Canopy maps to one of 7 layers:
+
+| Layer | Name | What It Is Here |
+|-------|------|----------------|
+| 1 | Network | `company.yaml`, `reportsTo`, `TEAM.md` — who connects to whom |
+| 2 | Signal | `signal:` field, S=(M,G,T,F,W) — encoded intent flowing through the network |
+| 3 | Composition | Agent body sections, SKILL.md steps — the micro-structure of each Signal |
+| 4 | Interface | Progressive disclosure (L0/L1/L2) — how information surfaces to agents |
+| 5 | Data | `agents/`, `skills/`, `teams/`, `projects/`, `tasks/` — the storage substrate |
+| 6 | Feedback | Heartbeat cycle, evidence gates, S/N quality gates — self-correction loops |
+| 7 | Governance | This file (S5 Policy), governance rules, board powers — Beer's VSM |
+
+Four governing principles constrain every layer: **Shannon** (channel capacity),
+**Ashby** (requisite variety), **Beer** (viable structure), **Wiener** (feedback closure).
+
+See `architecture/optimal-system-mapping.md` for the canonical mapping.
+
 ## Boot Sequence
 
 1. Read this SYSTEM.md (you're doing it now)
@@ -87,10 +108,10 @@ Validate an Operation directory for protocol compliance.
 
 This repository contains agent templates organized by function:
 
-| Category | Count | Directory |
+| Division | Count | Directory |
 |----------|-------|-----------|
-| Engineering | 10 | `agents/engineering/` |
-| Sales | 8 | `agents/sales/` |
+| Technology | 10 | `agents/technology/` |
+| Revenue | 8 | `agents/revenue/` |
 
 Each agent file follows the standard in `protocol/agent-format.md`.
 

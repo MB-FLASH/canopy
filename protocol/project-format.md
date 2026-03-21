@@ -322,9 +322,45 @@ A project definition is valid if:
 
 ---
 
+### Projects as Signal Chains
+
+In Signal Theory, a project is a **signal chain** — an ordered sequence of signals
+directed toward a bounded outcome. Each milestone is a signal that must be decoded
+and acted upon before the next signal can be sent.
+
+| PROJECT.md Element | Signal Chain Function |
+|-------------------|---------------------|
+| Milestones | Sequential signals — each must complete before the next begins |
+| Evidence gates | Feedback checkpoints — Wiener constraint (verify decoding before proceeding) |
+| Dependencies | Signal ordering — Signal B cannot be encoded until Signal A is decoded and acted upon |
+| Team assignments | Routing rules — which cluster handles which signal in the chain |
+| Success criteria | Terminal signal — the final feedback that closes the entire chain |
+| Timeline | Channel scheduling — when each signal enters the network |
+
+**Signal topology**: Projects can have both sequential and parallel signals.
+Milestones with dependencies are sequential (each blocks on the previous).
+Independent milestones are parallel (multiple signals in flight simultaneously).
+Forcing sequential flow where parallel is possible is a Shannon violation —
+it wastes available channel bandwidth.
+
+---
+
 ## See Also
 
 - `protocol/company-format.md` — Initiative and goal hierarchy context
 - `protocol/team-format.md` — Team definitions referenced by `team` field
 - `protocol/task-format.md` — Task definitions that reference project milestones
 - `protocol/operations-spec.md` — Full Operations Spec, Section 4 (Goal Hierarchy)
+
+---
+
+## Signal Theory Position
+
+Projects implement **signal chains** spanning multiple Optimal System layers:
+
+- **Layer 1 (Network)**: Team assignments define routing — which clusters handle which chain segments
+- **Layer 5 (Data)**: Project manifests are stored in the data substrate as the chain's coordination record
+- **Layer 6 (Feedback)**: Evidence gates ARE feedback checkpoints — each gate closes a Wiener loop
+- **Layer 7 (Governance)**: Budget allocation and approval requirements encode governance constraints
+
+See `architecture/optimal-system-mapping.md` for the full 7-layer mapping.

@@ -513,3 +513,19 @@ value proportional to workspace complexity.
 ---
 
 *Verification Layer v1.0 — Self-validating workspace contracts for OSA Operations*
+
+---
+
+## Signal Theory Position
+
+This spec implements **Layer 6 (Feedback Loop)** of the Optimal System architecture.
+
+Verification contracts ARE the feedback mechanism for structural integrity. Every `.spec.md` file encodes a Wiener loop: the intended state (the spec requirements) is compared against the actual state (the workspace file tree), discrepancies are detected (drift and failures), and corrections are surfaced (rejection notices and exit codes). Without this layer, structural drift is silent — the system loses its ability to self-correct.
+
+The `state.json` file is the explicit loop-closure record: it stores the last-verified hashes so each subsequent run can compare actual against expected. The ADR format in `spec/decisions/` closes a second loop — from "what must be true" (requirements) back to "why we decided this" (rationale), making the feedback traceable across time.
+
+**Most relevant governing principles:**
+- **Wiener (feedback closure)** — Every verification run is a loop check. The `/verify` command is the agent asking: "Does the current state match the intended state?" Exit codes 0/1/2 are the system's answer.
+- **Beer (structural coherence across layers)** — The cross-layer verification table (MODULES.md → topology, WORKFLOW.md → FSMs, PROCEDURES.md → bindings) ensures that Beer's requirement of coherence at every scale is enforceable, not just aspirational.
+
+See `architecture/optimal-system-mapping.md` for the canonical layer mapping.

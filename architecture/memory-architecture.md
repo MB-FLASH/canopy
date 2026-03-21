@@ -613,6 +613,7 @@ CREATE TABLE entity_edges (
 | `heartbeat.md` | Session end triggers episodic compression |
 | `sessions.md` | Session state = working memory serialization |
 | `signal-integration.md` | Fact extraction uses Signal classification |
+| `context-mesh.md` | Complement to individual memory: the Context Mesh holds shared in-flight team context (decisions made, files changed, open questions) that persists across agent run boundaries — distinct from per-agent episodic/semantic memory |
 
 ---
 

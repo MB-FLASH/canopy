@@ -336,3 +336,49 @@ on ambiguous signals.
 - `protocol/company-format.md` — Company-level budget and governance
 - `protocol/task-format.md` — Task definitions, including team assignment
 - `architecture/governance.md` — How budget enforcement cascades through the hierarchy
+
+---
+
+### Teams as Signal Network Clusters
+
+In Signal Theory, a team is a **cluster** in the Signal Network — a group of
+tightly-connected endpoints with shared genre competence. The team format
+encodes this network function:
+
+| TEAM.md Element | Signal Network Function |
+|----------------|------------------------|
+| Team members list | Endpoints in the cluster — nodes that can encode/decode signals within the team's domain |
+| Team mission | Shared genre competence declaration — what classes of signals this cluster handles |
+| Manager / lead | Cluster gateway — the node that routes signals between this cluster and the broader network |
+| Budget rollup | Aggregate channel capacity — Shannon constraint at the team level |
+| Coordination patterns | System 2 (Coordination) — how S1 units within the cluster synchronize |
+| Escalation rules | Algedonic channel — viability-preserving bypass when normal coordination fails |
+
+**Recursive viability**: Every team IS a viable system. It has its own S1 (members
+executing tasks), S2 (coordination patterns), S3 (manager allocating resources),
+S4 (team-level pattern recognition), and S5 (team mission). This recursion is
+Beer's fundamental insight — the same 5-subsystem structure repeats at every scale.
+
+---
+
+## Signal Theory Position
+
+This spec implements **Layer 1 (Network clusters) + Layer 7 (Governance, recursive VSM)** of the Optimal System architecture.
+
+Teams ARE clusters in the Signal Network — tightly connected endpoints that share genre competence, a common mission, and defined handoff protocols. Where `company.yaml` defines the full network topology, a team definition encodes a subnet: its internal routing (coordination patterns), its interface to the wider network (escalation rules and handoff protocols), and its bandwidth ceiling (team budget).
+
+Each team IS also a recursive viable system. The 5 Beer subsystems appear directly in the team format:
+
+| VSM Subsystem | Team Format Element |
+|---------------|---------------------|
+| S1 — Operations | `members` — the agents doing the work |
+| S2 — Coordination | Coordination Patterns section — synchronization between members |
+| S3 — Control | `manager` field — accountable for output quality and resource use |
+| S4 — Intelligence | Escalation Rules section — what the team observes and surfaces upward |
+| S5 — Policy | Team Mission section — the identity statement that constrains member behavior |
+
+**Most relevant governing principles:**
+- **Beer (recursion)** — Every team replicates the 5-subsystem structure. A viable team at any scale follows the same pattern.
+- **Ashby (variety matching)** — Team composition (the `members` list) must provide enough behavioral variety to match the task variety the team faces. An under-staffed team is an Ashby violation.
+
+See `architecture/optimal-system-mapping.md` for the canonical layer mapping.

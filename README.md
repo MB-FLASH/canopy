@@ -44,6 +44,27 @@ Plus OpenCode, HTTP endpoints, shell processes, and any agent that can read file
 
 ---
 
+## Theoretical Foundation
+
+Canopy implements the **Optimal System** architecture from *Signal Theory: The
+Architecture of Optimal Intent Encoding*. The protocol's directory structure,
+agent format, progressive disclosure, and governance model directly implement
+the paper's 7-layer system:
+
+1. **Network** — `company.yaml` and `reportsTo` define who connects to whom
+2. **Signal** — `S=(M,G,T,F,W)` encodes intent across 5 dimensions
+3. **Composition** — Agent body sections and skill steps define micro-structure
+4. **Interface** — Progressive disclosure (L0/L1/L2) surfaces the right context
+5. **Data** — Markdown files are the storage substrate for organizational intent
+6. **Feedback** — Heartbeat cycles and quality gates close every loop
+7. **Governance** — SYSTEM.md encodes Beer's Viable System Model recursively
+
+Every design decision traces to one of four governing principles: **Shannon**
+(channel capacity), **Ashby** (requisite variety), **Beer** (viable structure),
+**Wiener** (feedback closure).
+
+---
+
 ## The Command Center: OSA
 
 Canopy is the protocol. **OSA** (Optimal System Agent) is the visual command center.

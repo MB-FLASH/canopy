@@ -33,6 +33,8 @@ Layer 2: LIBRARIES   agents/ + skills/ + reference/ -- reusable components
 Layer 1: COMPUTE     Adapter layer -- OSA, Claude Code, Cursor, Codex
 ```
 
+These operational layers implement the 7-layer **Optimal System** architecture from Signal Theory. The mapping is not 1:1 — operational layers group multiple theoretical concerns for practical use. The Network (L1) lives in company.yaml. The Signal (L2) lives in agent `signal:` fields. The Interface (L4) is progressive disclosure. The Feedback Loop (L6) is the heartbeat cycle. The Governance (L7) is SYSTEM.md. See `architecture/optimal-system-mapping.md` for the full mapping.
+
 Beyond the 5-layer stack, three optional coordination formats add organizational
 structure for larger operations: **teams**, **projects**, and **task manifests**.
 These are not required for a working operation, but they become necessary once

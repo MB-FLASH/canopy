@@ -462,6 +462,11 @@ is unreachable.
 - [governance.md](governance.md) — Cross-team delegation and escalation rules
 - [workspaces.md](workspaces.md) — Workspace resolution for agent working directories
 - [sessions.md](sessions.md) — Session persistence across agent restarts
+- [peer-protocol.md](peer-protocol.md) — Horizontal coordination layer: handoffs, review gates, negotiation, and file locking that extend the leader-worker model laterally
+- [context-mesh.md](context-mesh.md) — Per-team context keeper: the persistent nervous system that stores shared in-flight context across all agents on a team
+- [decision-graph.md](decision-graph.md) — DAG-structured decision tracking: leaders create decision nodes when decomposing goals; the graph holds the team's decision memory
+- [conversations.md](conversations.md) — Structured multi-agent dialogue for brainstorms, design reviews, red teams, and user panels within the team
+- [self-healing.md](self-healing.md) — Autonomous error recovery: when agents in the team fail, healing episodes restore viability without routing through the leader
 
 ---
 

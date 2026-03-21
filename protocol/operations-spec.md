@@ -683,12 +683,21 @@ Complete Operation directory structure:
 ├── SYSTEM.md                   # Agent system entry point
 │
 ├── agents/                     # Agent definitions (Section 3)
-│    ├── ceo.md
-│    ├── cto.md
-│    └── {role}.md
+│    ├── executive/             # Agents above the division layer
+│    │    └── ceo.md
+│    └── {division}/            # Organized by hierarchy
+│         └── {department}/
+│              └── {team}/
+│                   └── {agent-id}.md
+│
+├── divisions/                  # Division manifests (protocol/division-format.md)
+│    └── {division-id}.md
+│
+├── departments/                # Department manifests (protocol/department-format.md)
+│    └── {division-id}/
+│         └── {department-id}.md
 │
 ├── teams/                      # Team manifests (protocol/team-format.md)
-│    ├── engineering.md
 │    └── {team-id}.md
 │
 ├── projects/                   # Standalone project definitions (protocol/project-format.md)
@@ -732,6 +741,8 @@ Complete Operation directory structure:
 |----------|------------|-------------|
 | `company.yaml` | CEO agent + board | Governance approval |
 | `agents/` | Board | Board approval |
+| `divisions/` | Board | Board approval |
+| `departments/` | Board | Board approval |
 | `teams/` | Board | Board approval |
 | `projects/` | Project owner agent | Workflow phase only |
 | `workflows/` | CTO agent | CTO + CEO approval |
@@ -749,6 +760,8 @@ Complete Operation directory structure:
 | File | What it covers |
 |------|---------------|
 | `protocol/agent-format.md` | Detailed agent definition standard including all frontmatter fields |
+| `protocol/division-format.md` | Division manifests — strategic envelope, cross-department coordination, budget ceilings |
+| `protocol/department-format.md` | Department manifests — domain ownership, cross-team coordination, budget ceilings |
 | `protocol/team-format.md` | Team manifests — coordination patterns, escalation rules, budget ceilings |
 | `protocol/project-format.md` | Standalone project definitions — goals, milestones, risk registers |
 | `protocol/task-format.md` | Task manifest standard — recurring tasks, acceptance criteria, evidence gates |
@@ -757,3 +770,23 @@ Complete Operation directory structure:
 ---
 
 *OSA Operations Spec v1.0 — OptimalOS reference layer*
+
+---
+
+## Signal Theory Position
+
+This spec **spans all 7 layers** of the Optimal System architecture. An Operation IS a portable Optimal System — it contains every layer in deployable format.
+
+| Layer | Where It Lives in an Operation |
+|-------|-------------------------------|
+| L1 Network | `agents/` + `reportsTo` org chart — the node topology and routing edges |
+| L2 Signal | `signal:` frontmatter field — each agent's default S=(M,G,T,F,W) encoding |
+| L3 Composition | Agent body sections (Identity, Mission, Rules, Methodology, Templates) — micro-structure within each signal |
+| L4 Interface | Tiered context loading (`l0` / `l1` / `full`) — progressive disclosure as the interface contract |
+| L5 Data | `reference/`, `tasks/`, `sessions/` — the file substrate that stores and persists organizational state |
+| L6 Feedback | Phase gates, S/N scoring, and the Dev→QA loop — the feedback mechanism at every workflow transition |
+| L7 Governance | `company.yaml` + board approval gates + `logs/activity.log` — System 5 (Policy) encoded in YAML |
+
+All 4 governing principles apply simultaneously: Beer (viable structure in the org), Shannon (tiered loading respects bandwidth), Ashby (agent variety must match operational variety), Wiener (every handoff closes a feedback loop).
+
+See `architecture/optimal-system-mapping.md` for the canonical layer mapping.

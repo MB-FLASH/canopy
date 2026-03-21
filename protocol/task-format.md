@@ -451,6 +451,41 @@ verify that the review was actually approved by a designated reviewer.
 
 ---
 
+### Tasks as Atomic Signals
+
+In Signal Theory, a task is an **atomic signal** — the smallest unit of encoded
+intent that produces action at a destination. One task = one intent = one signal.
+
+| TASK.md Element | Atomic Signal Property |
+|----------------|----------------------|
+| Title / description | Encoded intent — what action this signal demands |
+| Assignee | Destination node — the endpoint that will decode and act |
+| Status | Signal lifecycle stage — Created → Sent → Received → Decoded → Acted Upon |
+| Priority | Channel priority — which signals get decoded first when bandwidth is constrained |
+| Dependencies | Signal ordering — this signal cannot be transmitted until prerequisite signals complete |
+| Evidence / acceptance criteria | Feedback specification — what constitutes confirmed decoding (Wiener loop closure) |
+| Template | Genre skeleton — pre-resolved Structure (dimension W) for recurring task patterns |
+| Tags | Signal metadata — classification dimensions for routing and filtering |
+
+**Task status IS the Signal lifecycle**:
+
+```
+pending     = Created (intent encoded, not yet transmitted)
+assigned    = Sent (signal in transit to destination node)
+in_progress = Received + Decoding (destination is processing)
+review      = Decoded (output produced, awaiting feedback confirmation)
+done        = Acted Upon + Feedback closed (loop complete)
+blocked     = Transmission failure (noise, routing error, dependency)
+cancelled   = Signal withdrawn (intent no longer valid)
+```
+
+**Task templates** are genre templates at the task level — the same dual-process
+encoding mechanism as skills. A recurring task pattern (weekly report, sprint
+review, deploy checklist) gets formalized as a template, converting expensive
+System 2 encoding into cheap System 1 invocation.
+
+---
+
 ## See Also
 
 - `protocol/operations-spec.md` — Section 4: Goal Hierarchy and ephemeral task schema
@@ -458,3 +493,19 @@ verify that the review was actually approved by a designated reviewer.
 - `protocol/team-format.md` — Team definitions and coordination patterns for task handoffs
 - `protocol/agent-format.md` — Agent definitions, including the `skills` that agents use during task execution
 - `protocol/signal-theory.md` — Signal Theory reference for the `signal` field
+
+---
+
+## Signal Theory Position
+
+Tasks implement **atomic signals** at the most granular level of the Optimal System:
+
+- **Layer 2 (Signal)**: Each task IS a signal — encoded intent directed at a destination to produce action
+- **Layer 5 (Data)**: Task manifests persist in the data substrate, tracking lifecycle state
+- **Layer 6 (Feedback)**: Task completion with evidence IS feedback loop closure — the Wiener constraint at the atomic level
+- **Layer 7 (Governance)**: Priority, assignment rules, and approval requirements encode governance constraints
+
+The task lifecycle (pending → assigned → in_progress → review → done) maps directly
+to the Signal lifecycle (Created → Sent → Received → Decoded → Acted Upon + Feedback).
+
+See `architecture/optimal-system-mapping.md` for the full 7-layer mapping.
