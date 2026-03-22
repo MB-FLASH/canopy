@@ -82,12 +82,17 @@ defmodule CanopyWeb.SecretController do
       secret ->
         new_token = Base.encode64(:crypto.strong_rand_bytes(32))
 
-        {:ok, updated} =
-          secret
-          |> Secret.changeset(%{"encrypted_value" => new_token})
-          |> Repo.update()
+        case secret
+             |> Secret.changeset(%{"encrypted_value" => new_token})
+             |> Repo.update() do
+          {:ok, updated} ->
+            json(conn, %{secret: serialize(updated)})
 
-        json(conn, %{secret: serialize(updated)})
+          {:error, cs} ->
+            conn
+            |> put_status(422)
+            |> json(%{error: "rotation_failed", details: format_errors(cs)})
+        end
     end
   end
 

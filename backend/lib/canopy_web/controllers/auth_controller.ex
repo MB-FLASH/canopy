@@ -6,24 +6,29 @@ defmodule CanopyWeb.AuthController do
   import Ecto.Query
 
   def login(conn, %{"email" => email, "password" => password}) do
-    with %User{} = user <- Repo.one(from u in User, where: u.email == ^email),
-         true <- Bcrypt.verify_pass(password, user.password_hash) do
-      {:ok, token, _claims} =
-        Canopy.Guardian.encode_and_sign(user, %{"role" => user.role}, ttl: {1, :hour})
+    user = Repo.one(from u in User, where: u.email == ^email)
 
-      Repo.update!(Ecto.Changeset.change(user, last_login: DateTime.utc_now() |> DateTime.truncate(:second)))
+    cond do
+      user && Bcrypt.verify_pass(password, user.password_hash) ->
+        {:ok, token, _claims} =
+          Canopy.Guardian.encode_and_sign(user, %{"role" => user.role}, ttl: {1, :hour})
 
-      json(conn, %{
-        token: token,
-        user: %{
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role
-        }
-      })
-    else
-      _ ->
+        Repo.update!(Ecto.Changeset.change(user, last_login: DateTime.utc_now() |> DateTime.truncate(:second)))
+
+        json(conn, %{
+          token: token,
+          user: %{
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role
+          }
+        })
+
+      true ->
+        # Constant-time comparison to prevent user enumeration
+        Bcrypt.no_user_verify()
+
         conn
         |> put_status(401)
         |> json(%{error: "invalid_credentials"})

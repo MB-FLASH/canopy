@@ -170,7 +170,7 @@ defmodule CanopyWeb.Router do
     resources "/users", UserController, except: [:new, :edit]
     get "/audit", AuditController, :index
 
-    resources "/gateways", GatewayController, only: [:index, :create, :delete] do
+    resources "/gateways", GatewayController, only: [:index, :show, :create, :update, :delete] do
       post "/probe", GatewayController, :probe, as: :probe
     end
 

@@ -38,13 +38,14 @@ defmodule CanopyWeb.ConfigRevisionController do
         conn |> put_status(404) |> json(%{error: "not_found"})
 
       revision ->
-        # Record the restore by creating a new revision with new_value restored
+        # Create a restore revision: old_value is what we're changing FROM (current),
+        # new_value is what we're restoring TO (the old_value from the selected revision)
         attrs = %{
           "entity_type" => revision.entity_type,
           "entity_id" => revision.entity_id,
           "key" => revision.key,
           "old_value" => revision.new_value,
-          "new_value" => revision.new_value,
+          "new_value" => revision.old_value,
           "workspace_id" => revision.workspace_id
         }
 

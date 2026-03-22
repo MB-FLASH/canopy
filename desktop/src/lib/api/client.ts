@@ -662,7 +662,7 @@ export const goals = {
     }),
   update: (_projectId: string, id: string, body: Partial<Goal>) =>
     request<Goal>(`/goals/${id}`, {
-      method: "PATCH",
+      method: "PUT",
       body: JSON.stringify(body),
     }),
   delete: (id: string) => request<void>(`/goals/${id}`, { method: "DELETE" }),
@@ -761,7 +761,7 @@ export const inbox = {
     }),
   dismiss: (id: string) =>
     request<void>(`/inbox/${id}/read`, { method: "POST" }),
-  read: (id: string) => request<void>(`/inbox/${id}/read`, { method: "POST" }),
+  read: (id: string) => request<void>(`/inbox/${id}/read`, { method: "PATCH" }),
   readAll: () => request<void>("/inbox/read-all", { method: "POST" }),
 };
 
@@ -835,7 +835,7 @@ export const alerts = {
     }),
   update: (id: string, body: Partial<AlertRule>) =>
     request<AlertRule>(`/alerts/rules/${id}`, {
-      method: "PATCH",
+      method: "PUT",
       body: JSON.stringify(body),
     }),
   delete: (id: string) =>
@@ -886,6 +886,7 @@ export const gateways = {
     const data = await request<{ gateways: Gateway[] }>("/gateways");
     return data.gateways ?? [];
   },
+  show: (id: string) => request<Gateway>(`/gateways/${id}`),
   create: (body: Partial<Gateway>) =>
     request<Gateway>("/gateways", {
       method: "POST",

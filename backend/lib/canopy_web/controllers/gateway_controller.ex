@@ -29,6 +29,36 @@ defmodule CanopyWeb.GatewayController do
     end
   end
 
+  def show(conn, %{"id" => id}) do
+    case Repo.get(Gateway, id) do
+      nil ->
+        conn |> put_status(404) |> json(%{error: "not_found"})
+
+      gateway ->
+        json(conn, %{gateway: serialize(gateway)})
+    end
+  end
+
+  def update(conn, %{"id" => id} = params) do
+    case Repo.get(Gateway, id) do
+      nil ->
+        conn |> put_status(404) |> json(%{error: "not_found"})
+
+      gateway ->
+        changeset = Gateway.changeset(gateway, params)
+
+        case Repo.update(changeset) do
+          {:ok, updated} ->
+            json(conn, %{gateway: serialize(updated)})
+
+          {:error, cs} ->
+            conn
+            |> put_status(422)
+            |> json(%{error: "validation_failed", details: format_errors(cs)})
+        end
+    end
+  end
+
   def delete(conn, %{"id" => id}) do
     case Repo.get(Gateway, id) do
       nil ->

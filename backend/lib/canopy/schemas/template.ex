@@ -9,9 +9,9 @@ defmodule Canopy.Schemas.Template do
     field :name, :string
     field :description, :string
     field :category, :string, default: "custom"
-    field :agents, :map, default: %{}
-    field :skills, :map, default: %{}
-    field :schedules, :map, default: %{}
+    field :agents, {:array, :map}, default: []
+    field :skills, {:array, :map}, default: []
+    field :schedules, {:array, :map}, default: []
     field :is_builtin, :boolean, default: false
 
     timestamps()
