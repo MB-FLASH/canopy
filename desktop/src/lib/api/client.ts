@@ -640,10 +640,13 @@ export const goals = {
     goalId: string,
     opts?: { max_issues?: number; auto_assign?: boolean },
   ) =>
-    request<{ issues: Issue[]; count: number }>(`/goals/${goalId}/decompose`, {
-      method: "POST",
-      body: JSON.stringify(opts ?? {}),
-    }),
+    request<{ status: string; goal_id: string; message: string }>(
+      `/goals/${goalId}/decompose`,
+      {
+        method: "POST",
+        body: JSON.stringify(opts ?? {}),
+      },
+    ),
 };
 
 // ── Projects ──────────────────────────────────────────────────────────────────

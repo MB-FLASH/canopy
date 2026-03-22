@@ -143,22 +143,24 @@ class GoalsStore {
   async decompose(
     goalId: string,
     opts?: { max_issues?: number; auto_assign?: boolean },
-  ): Promise<{ issues: import("$api/types").Issue[]; count: number } | null> {
+  ): Promise<boolean> {
     try {
       const result = await goalsApi.decompose(goalId, opts);
-      // Re-fetch the full tree so issue_count is updated on the affected node
-      if (this.activeProjectId) {
-        await this.fetchGoals(this.activeProjectId);
-      }
       toastStore.success(
-        "Goal decomposed",
-        `${result.count} issue${result.count === 1 ? "" : "s"} created`,
+        "Decomposition started",
+        result.message || "Issues will appear when the AI finishes processing.",
       );
-      return result;
+      // Poll for new issues after a delay (the backend runs async)
+      setTimeout(() => {
+        if (this.activeProjectId) {
+          void this.fetchGoals(this.activeProjectId);
+        }
+      }, 5000);
+      return true;
     } catch (e) {
       const msg = (e as Error).message;
       toastStore.error("Failed to decompose goal", msg);
-      return null;
+      return false;
     }
   }
 
