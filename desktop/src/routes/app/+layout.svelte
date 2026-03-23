@@ -15,6 +15,9 @@ import Sidebar from '$lib/components/layout/Sidebar.svelte';
   import ActivityWidget from '$lib/components/activity/ActivityWidget.svelte';
   import { activityStore } from '$lib/stores/activity.svelte';
   import { sessionsStore } from '$lib/stores/sessions.svelte';
+  import { organizationsStore } from '$lib/stores/organizations.svelte';
+  import { approvalsStore } from '$lib/stores/approvals.svelte';
+  import { hierarchyStore } from '$lib/stores/hierarchy.svelte';
   import { isTauri, isMacOS } from '$lib/utils/platform';
   import { initializeAuth, getToken, isMockEnabled, workspaces, agents } from '$api/client';
 
@@ -132,7 +135,17 @@ import Sidebar from '$lib/components/layout/Sidebar.svelte';
       // 5. Sync workspace list from backend (sets activeWorkspaceId to backend's active workspace)
       await workspaceStore.syncFromBackend();
 
-      // 6. Load agents: try Tauri filesystem scan first, fall back to API/mock
+      // 6. Initialize organizations — ensure at least one exists, auto-select
+      await organizationsStore.ensureDefault();
+
+      // 7. Pre-fetch hierarchy divisions + approvals for sidebar badges
+      if (organizationsStore.current) {
+        void hierarchyStore.fetchDivisions(organizationsStore.current.id);
+        void hierarchyStore.fetchTeams();
+      }
+      void approvalsStore.fetchApprovals();
+
+      // 8. Load agents: try Tauri filesystem scan first, fall back to API/mock
       const ws = workspaceStore.activeWorkspace;
       const wsId = workspaceStore.activeWorkspaceId ?? undefined;
       if (ws) {

@@ -6,6 +6,7 @@
   import { workspaceStore } from '$lib/stores/workspace.svelte';
   import { agentsStore } from '$lib/stores/agents.svelte';
   import { approvalsStore } from '$lib/stores/approvals.svelte';
+  import { hierarchyStore } from '$lib/stores/hierarchy.svelte';
   import WorkspaceSwitcher from './WorkspaceSwitcher.svelte';
   import SidebarNavItem from './SidebarNavItem.svelte';
   import SidebarSection from './SidebarSection.svelte';
@@ -196,23 +197,29 @@
         {#if agentsStore.agents.length === 0}
           <div class="sb-empty">No agents</div>
         {:else}
-          {@const grouped = (() => {
-            const groups = new Map<string, import('$api/types').CanopyAgent[]>();
-            for (const agent of agentsStore.agents) {
-              const div = (agent.config?.division as string) || 'team';
-              const list = groups.get(div) ?? [];
-              list.push(agent);
-              groups.set(div, list);
-            }
-            return [...groups.entries()]
-              .sort(([a], [b]) => (DIVISION_META[a]?.order ?? 99) - (DIVISION_META[b]?.order ?? 99));
-          })()}
-          {#if grouped.length > 1}
-            <!-- Division-grouped view -->
-            {#each grouped as [divKey, divAgents] (divKey)}
-              {@const meta = DIVISION_META[divKey]}
-              <SidebarSection label="{meta?.emoji ?? '📁'} {meta?.label ?? divKey}" badge={divAgents.length} defaultOpen={divKey === 'core'}>
-                {#each divAgents as agent (agent.id)}
+          {@const hasTeams = hierarchyStore.teams.length > 0}
+          {#if hasTeams}
+            <!-- Group agents by real org team membership -->
+            {@const teamMap = (() => {
+              const map = new Map<string, { name: string; agents: import('$api/types').CanopyAgent[] }>();
+              // Initialize all teams
+              for (const t of hierarchyStore.teams) {
+                map.set(t.id, { name: t.name, agents: [] });
+              }
+              // Assign agents to their teams
+              const unassigned: import('$api/types').CanopyAgent[] = [];
+              for (const agent of agentsStore.agents) {
+                if (agent.team_id && map.has(agent.team_id)) {
+                  map.get(agent.team_id)!.agents.push(agent);
+                } else {
+                  unassigned.push(agent);
+                }
+              }
+              return { teams: [...map.entries()].filter(([, v]) => v.agents.length > 0), unassigned };
+            })()}
+            {#each teamMap.teams as [teamId, teamData] (teamId)}
+              <SidebarSection label={teamData.name} badge={teamData.agents.length} defaultOpen={true}>
+                {#each teamData.agents as agent (agent.id)}
                   <SidebarNavItem
                     href="/app/agents/{agent.id}"
                     label={agent.display_name || agent.name}
@@ -222,16 +229,55 @@
                 {/each}
               </SidebarSection>
             {/each}
+            {#if teamMap.unassigned.length > 0}
+              <SidebarSection label="Unassigned" badge={teamMap.unassigned.length} defaultOpen={false}>
+                {#each teamMap.unassigned.slice(0, 8) as agent (agent.id)}
+                  <SidebarNavItem
+                    href="/app/agents/{agent.id}"
+                    label={agent.display_name || agent.name}
+                    icon={ICONS.agent}
+                    active={isActive(`/app/agents/${agent.id}`)}
+                  />
+                {/each}
+              </SidebarSection>
+            {/if}
           {:else}
-            <!-- Flat list (single group or no divisions) -->
-            {#each agentsStore.agents.slice(0, 8) as agent (agent.id)}
-              <SidebarNavItem
-                href="/app/agents/{agent.id}"
-                label={agent.display_name || agent.name}
-                icon={ICONS.agent}
-                active={isActive(`/app/agents/${agent.id}`)}
-              />
-            {/each}
+            <!-- Fallback: group by config.division when no real teams exist -->
+            {@const grouped = (() => {
+              const groups = new Map<string, import('$api/types').CanopyAgent[]>();
+              for (const agent of agentsStore.agents) {
+                const div = (agent.config?.division as string) || 'team';
+                const list = groups.get(div) ?? [];
+                list.push(agent);
+                groups.set(div, list);
+              }
+              return [...groups.entries()]
+                .sort(([a], [b]) => (DIVISION_META[a]?.order ?? 99) - (DIVISION_META[b]?.order ?? 99));
+            })()}
+            {#if grouped.length > 1}
+              {#each grouped as [divKey, divAgents] (divKey)}
+                {@const meta = DIVISION_META[divKey]}
+                <SidebarSection label="{meta?.emoji ?? '📁'} {meta?.label ?? divKey}" badge={divAgents.length} defaultOpen={divKey === 'core'}>
+                  {#each divAgents as agent (agent.id)}
+                    <SidebarNavItem
+                      href="/app/agents/{agent.id}"
+                      label={agent.display_name || agent.name}
+                      icon={ICONS.agent}
+                      active={isActive(`/app/agents/${agent.id}`)}
+                    />
+                  {/each}
+                </SidebarSection>
+              {/each}
+            {:else}
+              {#each agentsStore.agents.slice(0, 8) as agent (agent.id)}
+                <SidebarNavItem
+                  href="/app/agents/{agent.id}"
+                  label={agent.display_name || agent.name}
+                  icon={ICONS.agent}
+                  active={isActive(`/app/agents/${agent.id}`)}
+                />
+              {/each}
+            {/if}
           {/if}
           <SidebarNavItem href="/app/agents" label="View all ({agentsStore.agents.length})" icon={ICONS.agent} active={currentPath === '/app/agents'} />
         {/if}

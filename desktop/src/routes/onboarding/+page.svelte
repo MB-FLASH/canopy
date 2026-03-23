@@ -178,6 +178,16 @@
         await workspaceStore.setActiveWorkspace(wsEntry.id);
       }
 
+      // Create a default Organization for the hierarchy system
+      try {
+        const { organizations } = await import('$api/client');
+        const { organizationsStore } = await import('$lib/stores/organizations.svelte');
+        const org = await organizations.create({ name: workspaceName || 'My Organization' });
+        if (org) organizationsStore.setCurrent(org);
+      } catch (e) {
+        console.warn('Org creation skipped:', e);
+      }
+
       onboardingStore.complete();
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem('canopy-onboarding-complete', 'true');

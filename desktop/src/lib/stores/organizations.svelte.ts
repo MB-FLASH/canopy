@@ -21,12 +21,27 @@ class OrganizationsStore {
     try {
       this.organizations = await orgsApi.list();
       this.error = null;
+      // Auto-select first org if none is current
+      if (!this.current && this.organizations.length > 0) {
+        this.current = this.organizations[0];
+      }
     } catch (e) {
       const msg = (e as Error).message;
       this.error = msg;
       toastStore.error("Failed to load organizations", msg);
     } finally {
       this.loading = false;
+    }
+  }
+
+  /** Ensure at least one org exists; create a default if needed, then select it. */
+  async ensureDefault(): Promise<void> {
+    await this.fetchOrganizations();
+    if (this.organizations.length === 0) {
+      const created = await this.createOrganization({
+        name: "My Organization",
+      });
+      if (created) this.current = created;
     }
   }
 
