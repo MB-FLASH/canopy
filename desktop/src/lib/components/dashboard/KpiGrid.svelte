@@ -15,17 +15,17 @@
   const ICON_CURRENCY  = 'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6';
 
   const activeAgentsTrend = $derived(
-    dashboardStore.kpis.active_agents > dashboardStore.kpis.total_agents / 2
+    (dashboardStore.kpis?.active_agents ?? 0) > (dashboardStore.kpis?.total_agents ?? 0) / 2
       ? ('up' as const)
       : ('down' as const)
   );
 
   const liveRunsTrend = $derived(
-    dashboardStore.kpis.live_runs > 0 ? ('up' as const) : ('flat' as const)
+    (dashboardStore.kpis?.live_runs ?? 0) > 0 ? ('up' as const) : ('flat' as const)
   );
 
   const budgetTrend = $derived(
-    dashboardStore.kpis.budget_remaining_pct < 50 ? ('down' as const) : ('flat' as const)
+    (dashboardStore.kpis?.budget_remaining_pct ?? 100) < 50 ? ('down' as const) : ('flat' as const)
   );
 </script>
 
@@ -37,25 +37,25 @@
   {:else}
     <MetricCard
       label="Active Agents"
-      value={dashboardStore.kpis.active_agents}
-      subtitle="of {dashboardStore.kpis.total_agents} total"
+      value={dashboardStore.kpis?.active_agents ?? 0}
+      subtitle="of {dashboardStore.kpis?.total_agents ?? 0} total"
       trend={activeAgentsTrend}
       icon={ICON_USERS}
     />
     <MetricCard
       label="Live Runs"
-      value={dashboardStore.kpis.live_runs}
+      value={dashboardStore.kpis?.live_runs ?? 0}
       trend={liveRunsTrend}
       icon={ICON_PLAY}
     />
     <MetricCard
       label="Open Issues"
-      value={dashboardStore.kpis.open_issues}
+      value={dashboardStore.kpis?.open_issues ?? 0}
       icon={ICON_TRIANGLE}
     />
     <MetricCard
       label="Budget Remaining"
-      value="{dashboardStore.kpis.budget_remaining_pct}%"
+      value="{dashboardStore.kpis?.budget_remaining_pct ?? 0}%"
       trend={budgetTrend}
       icon={ICON_CURRENCY}
     />

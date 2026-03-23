@@ -2,7 +2,7 @@
 // Template deployment pipeline: scaffolds .canopy/ workspace via Tauri IPC,
 // loads agents from filesystem or bundled data, and registers them.
 
-import type { CanopyAgent } from "$api/types";
+import type { CanopyAgent, AdapterType } from "$api/types";
 import { workspaceStore } from "$lib/stores/workspace.svelte";
 import { agentsStore } from "$lib/stores/agents.svelte";
 import { toastStore } from "$lib/stores/toasts.svelte";
@@ -163,7 +163,10 @@ async function registerAgents(
             .replace(/^-|-$/g, "");
 
           // Normalize adapter: template may use underscores, schema requires hyphens
-          const adapter = (agent.adapter || "claude-code").replace(/_/g, "-");
+          const adapter = (agent.adapter || "claude-code").replace(
+            /_/g,
+            "-",
+          ) as AdapterType;
 
           return agentsApi.create({
             slug,

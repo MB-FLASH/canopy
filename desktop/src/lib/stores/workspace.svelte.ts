@@ -309,7 +309,7 @@ class WorkspaceStore {
       try {
         const created = await workspacesApi.create({
           name,
-          path: resolvedPath,
+          directory: resolvedPath,
         });
         backendId =
           (created as any).workspace?.id ?? (created as any).id ?? null;

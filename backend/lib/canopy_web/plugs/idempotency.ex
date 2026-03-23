@@ -25,8 +25,6 @@ defmodule CanopyWeb.Plugs.Idempotency do
   end
 
   defp handle_idempotency(conn, key) do
-    ensure_table_exists()
-
     case :ets.lookup(@table, key) do
       [{^key, {status, body, _timestamp}}] ->
         conn
@@ -50,26 +48,8 @@ defmodule CanopyWeb.Plugs.Idempotency do
     end
   end
 
-  defp ensure_table_exists do
-    case :ets.info(@table) do
-      :undefined ->
-        :ets.new(@table, [:named_table, :set, :public, read_concurrency: true])
-        schedule_cleanup()
-
-      _ ->
-        :ok
-    end
-  end
-
-  defp schedule_cleanup do
-    Task.start(fn ->
-      Process.sleep(@cleanup_interval)
-      cleanup_expired()
-      schedule_cleanup()
-    end)
-  end
-
-  defp cleanup_expired do
+  @doc "Run expired entry cleanup. Called by Canopy.IdempotencyCleanup or manually."
+  def cleanup_expired do
     cutoff = System.system_time(:second) - @ttl_seconds
 
     :ets.select_delete(@table, [

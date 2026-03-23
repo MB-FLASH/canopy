@@ -16,8 +16,12 @@ defmodule Canopy.Application do
       {Task.Supervisor, name: Canopy.TaskSupervisor},
       Canopy.AlertEvaluator,
       Canopy.StaleCleanup,
+      Canopy.IdempotencyCleanup,
       CanopyWeb.Endpoint
     ]
+
+    # Create ETS table for idempotency plug before endpoint starts (avoids TOCTOU race)
+    :ets.new(:canopy_idempotency_cache, [:named_table, :set, :public, read_concurrency: true])
 
     opts = [strategy: :one_for_one, name: Canopy.Supervisor]
     result = Supervisor.start_link(children, opts)

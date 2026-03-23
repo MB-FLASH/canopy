@@ -15,6 +15,7 @@ defmodule CanopyWeb.Router do
 
   pipeline :streaming do
     plug :accepts, ["event-stream", "json"]
+    plug :fetch_query_params
     plug CanopyWeb.Plugs.CORS
   end
 
