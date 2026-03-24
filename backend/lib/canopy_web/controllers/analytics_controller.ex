@@ -85,8 +85,8 @@ defmodule CanopyWeb.AnalyticsController do
           if durations != [], do: div(Enum.sum(durations), length(durations)), else: 0
 
         %{
-          agent_id: agent_id,
-          agent_name: agent_name,
+          id: agent_id,
+          name: agent_name,
           total_sessions: session_count,
           success_rate: success_rate,
           avg_duration_seconds: avg_duration,
