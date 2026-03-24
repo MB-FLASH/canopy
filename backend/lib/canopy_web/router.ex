@@ -46,6 +46,7 @@ defmodule CanopyWeb.Router do
 
     # Agents
     get "/agents/hierarchy", AgentController, :hierarchy
+
     resources "/agents", AgentController, except: [:new, :edit] do
       post "/wake", AgentController, :wake, as: :wake
       post "/sleep", AgentController, :sleep, as: :sleep
@@ -61,6 +62,8 @@ defmodule CanopyWeb.Router do
     resources "/sessions", SessionController, only: [:index, :show, :delete] do
       get "/transcript", SessionController, :transcript, as: :transcript
       post "/message", SessionController, :message, as: :message
+      get "/chain", SessionController, :chain, as: :chain
+      post "/compact", SessionController, :compact, as: :compact
     end
 
     # Workflows
@@ -82,6 +85,7 @@ defmodule CanopyWeb.Router do
     get "/schedules/queue", ScheduleController, :queue
     post "/schedules/wake-all", ScheduleController, :wake_all
     post "/schedules/pause-all", ScheduleController, :pause_all
+
     resources "/schedules", ScheduleController, except: [:new, :edit] do
       post "/trigger", ScheduleController, :trigger, as: :trigger
     end
@@ -102,6 +106,11 @@ defmodule CanopyWeb.Router do
     get "/spawn/active", SpawnController, :active
     delete "/spawn/:id", SpawnController, :kill
     get "/spawn/history", SpawnController, :history
+
+    # Delegation + Dispatch
+    post "/delegations", DelegationController, :create
+    get "/dispatch/routes", DelegationController, :routes
+    post "/dispatch/preview", DelegationController, :preview
 
     # Issues
     resources "/issues", IssueController, except: [:new, :edit] do
@@ -142,6 +151,7 @@ defmodule CanopyWeb.Router do
     # Notifications
     get "/notifications/badges", NotificationController, :badges
     post "/notifications/mark-all-read", NotificationController, :mark_all_read
+
     resources "/notifications", NotificationController, only: [:index, :show, :create] do
       post "/read", NotificationController, :mark_read, as: :read
       post "/dismiss", NotificationController, :dismiss, as: :dismiss
@@ -167,6 +177,7 @@ defmodule CanopyWeb.Router do
     post "/skills/bulk-disable", SkillController, :bulk_disable
     get "/skills/categories", SkillController, :categories
     post "/skills/import", SkillController, :import_skill
+
     resources "/skills", SkillController, only: [:index, :show] do
       post "/toggle", SkillController, :toggle, as: :toggle
       post "/inject", SkillController, :inject, as: :inject
@@ -308,7 +319,8 @@ defmodule CanopyWeb.Router do
     end
 
     # Execution Workspaces
-    resources "/execution-workspaces", ExecutionWorkspaceController, only: [:index, :create, :delete]
+    resources "/execution-workspaces", ExecutionWorkspaceController,
+      only: [:index, :create, :delete]
 
     # Plugins
     resources "/plugins", PluginController, except: [:new, :edit] do

@@ -1,8 +1,12 @@
 // src/lib/stores/sessions.svelte.ts
 // Observability store for session list, detail, and live transcript streaming
 
-import type { Session, Message, ActivityEvent } from "$api/types";
-import { sessions as sessionsApi, messages as messagesApi } from "$api/client";
+import type { Session, Message, ActivityEvent, SessionChain } from "$api/types";
+import {
+  sessions as sessionsApi,
+  messages as messagesApi,
+  sessionChain as sessionChainApi,
+} from "$api/client";
 import { connectSSE, type StreamController } from "$api/sse";
 import { toastStore } from "./toasts.svelte";
 
@@ -45,6 +49,10 @@ class SessionsStore {
   selectedSession = $state<Session | null>(null);
   transcript = $state<Message[]>([]);
   transcriptLoading = $state(false);
+
+  // ── Session chain (continuity) ──────────────────────────────────────────────
+  chain = $state<SessionChain | null>(null);
+  chainLoading = $state(false);
 
   // ── Live streaming for active sessions ─────────────────────────────────────
   isLive = $state(false);
@@ -232,6 +240,35 @@ class SessionsStore {
     this.#transcriptStream?.abort();
     this.#transcriptStream = null;
     this.isLive = false;
+  }
+
+  // ── Session chain operations ────────────────────────────────────────────────
+
+  async fetchChain(sessionId: string): Promise<void> {
+    this.chainLoading = true;
+    try {
+      this.chain = await sessionChainApi.get(sessionId);
+    } catch (e) {
+      const msg = (e as Error).message;
+      toastStore.error("Failed to load session chain", msg);
+    } finally {
+      this.chainLoading = false;
+    }
+  }
+
+  async compactSession(sessionId: string): Promise<void> {
+    try {
+      await sessionChainApi.compact(sessionId);
+      toastStore.success(
+        "Session compacted",
+        "Context summary saved. A new session will continue from this point.",
+      );
+      // Refresh the chain to reflect the new entry
+      await this.fetchChain(sessionId);
+    } catch (e) {
+      const msg = (e as Error).message;
+      toastStore.error("Compaction failed", msg);
+    }
   }
 
   // ── Filter helpers ─────────────────────────────────────────────────────────

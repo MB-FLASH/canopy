@@ -2,8 +2,16 @@ defmodule CanopyWeb.AnalyticsController do
   use CanopyWeb, :controller
 
   @agent_names [
-    "Athena", "Orion", "Nova", "Cipher", "Atlas",
-    "Echo", "Sage", "Lyra", "Rex", "Iris"
+    "Athena",
+    "Orion",
+    "Nova",
+    "Cipher",
+    "Atlas",
+    "Echo",
+    "Sage",
+    "Lyra",
+    "Rex",
+    "Iris"
   ]
 
   @team_names ["Engineering", "Research", "Operations", "Product", "Security"]
@@ -28,7 +36,11 @@ defmodule CanopyWeb.AnalyticsController do
     costs_by_day =
       for i <- 1..days do
         date = Date.add(Date.utc_today(), -(days - i))
-        %{date: Date.to_iso8601(date), cost_cents: rand_int(0, max(1, div(total_cost_cents, days) * 2))}
+
+        %{
+          date: Date.to_iso8601(date),
+          cost_cents: rand_int(0, max(1, div(total_cost_cents, days) * 2))
+        }
       end
 
     json(conn, %{

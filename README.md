@@ -7,7 +7,7 @@
 
 Canopy is a workspace protocol that turns folders of markdown into fully operational AI companies. Define agents, skills, teams, budgets, and governance in plain files — then connect any AI backend (Claude Code, OSA, Codex, Gemini, Cursor) and watch them work autonomously on heartbeat schedules.
 
-The desktop command center gives you a native app to hire from 160+ agents, watch them collaborate in a pixel-art virtual office, monitor token costs in real-time, and intervene when needed.
+The desktop command center gives you a native app to hire from 330+ agents, watch them collaborate in a pixel-art virtual office, monitor token costs in real-time, and intervene when needed.
 
 **Manage AI systems, not prompts.**
 
@@ -63,7 +63,7 @@ Backend API  (Elixir + Phoenix on :9089)
 Desktop Command Center  (SvelteKit 2 + Tauri 2 on :5200)
         |-- Dashboard (KPIs, active agents, budget burn)
         |-- Virtual Office (pixel-art team visualization)
-        |-- Agent Roster (hire from 160+ agents)
+        |-- Agent Roster (hire from 330+ agents)
         |-- Sessions (live chat, tool inspection)
         |-- Library (agents, skills, templates)
         |-- Cost Console (per-agent token spend)
@@ -119,7 +119,7 @@ The catalog is always cheap. Full manifests cost only when actually used. This a
 
 ### Agent Hiring
 
-Browse and hire from a library of 160+ pre-built agents across 13 categories — or define your own in a markdown file. Agents are behavioral templates, not binaries.
+Browse and hire from a library of 330+ pre-built agents across 19 categories — or define your own in a markdown file. Agents are behavioral templates, not binaries.
 
 Each agent file defines role, tools, coordination rules, escalation path, and heartbeat behavior. One-click hire from the Command Center or drop the file into `agents/`.
 
@@ -178,8 +178,8 @@ Agents resume context across heartbeats instead of starting fresh:
 
 - Task-scoped sessions persist across invocations
 - When context fills, generate handoff summary and start fresh
-- Compaction policy: max runs, max tokens, max age
-- Agent never loses progress — compacts and continues
+- Compaction policy (max runs, max tokens, max age) — in development
+- Agent never loses progress — core persistence is live; compaction is being built
 
 ### Multi-Runtime Adapter Dispatch
 
@@ -195,11 +195,11 @@ One orchestrator dispatches work to different runtimes based on task type:
 
 Each runtime is a pluggable adapter behind a standard interface.
 
-### Agent Commerce
+### Agent Commerce _(Planned — requires Stripe MPP integration)_
 
-Agents can buy things. Stripe's Machine Payments Protocol (MPP) lets agents transact autonomously — pay for APIs, buy compute, purchase services from other agent workspaces.
+Agents will be able to buy things. Stripe's Machine Payments Protocol (MPP) lets agents transact autonomously — pay for APIs, buy compute, purchase services from other agent workspaces.
 
-Canopy's budget enforcement wraps around MPP:
+Canopy's budget enforcement will wrap around MPP:
 
 - **Under threshold** — agent pays autonomously, logged to budget
 - **Over threshold** — payment queued for human approval
@@ -308,7 +308,7 @@ sales-engine/
 
 ## Agent Library
 
-160+ pre-built agents across 13 categories:
+330+ pre-built agents across 19 categories:
 
 | Category | Examples |
 |----------|---------|
@@ -332,20 +332,20 @@ Browse the library in the Command Center or drop any agent file into your `agent
 
 ## Adapters
 
-Canopy dispatches work to any connected runtime. Ten adapters supported out of the box:
+Canopy dispatches work to any connected runtime. Eleven adapters — five fully functional, six in beta:
 
-| Adapter | Install |
-|---------|---------|
-| **OSA** | `curl -fsSL https://raw.githubusercontent.com/Miosa-osa/OSA/main/install.sh \| bash` |
-| **Claude Code** | `npm install -g @anthropic-ai/claude-code` |
-| **Codex** | `npm install -g @openai/codex` |
-| **Cursor** | [cursor.sh](https://cursor.sh) |
-| **Gemini** | [ai.google.dev](https://ai.google.dev) |
-| **Aider** | `pip install aider-chat` |
-| **Windsurf** | [codeium.com/windsurf](https://codeium.com/windsurf) |
-| **OpenClaw** | `npm install -g openclaw` |
-| **JidoClaw** | `curl -fsSL https://raw.githubusercontent.com/robertohluna/jido_claw/main/install.sh \| bash` |
-| **Bash / HTTP** | Built-in |
+| Adapter | Status | Install |
+|---------|--------|---------|
+| **OSA** | Functional | `curl -fsSL https://raw.githubusercontent.com/Miosa-osa/OSA/main/install.sh \| bash` |
+| **Claude Code** | Functional | `npm install -g @anthropic-ai/claude-code` |
+| **Codex** | Functional | `npm install -g @openai/codex` |
+| **Bash / HTTP** | Functional | Built-in |
+| **Cursor** | Beta | [cursor.sh](https://cursor.sh) |
+| **Gemini** | Beta | [ai.google.dev](https://ai.google.dev) |
+| **OpenClaw** | Beta | `npm install -g openclaw` |
+| **Aider** | Beta | `pip install aider-chat` |
+| **JidoClaw** | Beta | `curl -fsSL https://raw.githubusercontent.com/robertohluna/jido_claw/main/install.sh \| bash` |
+| **Windsurf** | Beta | [codeium.com/windsurf](https://codeium.com/windsurf) |
 
 The Command Center auto-detects installed adapters and provides one-click setup wizards. Provider credentials are stored in the OS keychain via Tauri's secure store.
 

@@ -3,6 +3,7 @@ defmodule CanopyWeb.ApprovalController do
 
   alias Canopy.Repo
   alias Canopy.Schemas.{Approval, ApprovalComment}
+  alias Canopy.Governance.Executor
   import Ecto.Query
 
   def index(conn, params) do
@@ -102,7 +103,19 @@ defmodule CanopyWeb.ApprovalController do
              )
              |> Repo.update() do
           {:ok, updated} ->
-            json(conn, %{approval: serialize(updated)})
+            # If the governance gate created this approval with auto_execute: true,
+            # replay the original blocked action now that it's approved.
+            execution_result =
+              if updated.auto_execute do
+                case Executor.execute_approved(updated) do
+                  {:ok, result} -> %{auto_executed: true, result: inspect(result)}
+                  {:error, reason} -> %{auto_executed: false, execution_error: inspect(reason)}
+                end
+              else
+                %{auto_executed: false}
+              end
+
+            json(conn, %{approval: serialize(updated), execution: execution_result})
 
           {:error, _changeset} ->
             conn |> put_status(500) |> json(%{error: "update_failed"})

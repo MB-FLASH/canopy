@@ -269,7 +269,9 @@ defmodule CanopyWeb.ReportController do
         row
         |> Enum.map(&to_string/1)
         |> Enum.map(fn v ->
-          if String.contains?(v, [",", "\""]), do: ~s("#{String.replace(v, ~s("), ~s(""))}"), else: v
+          if String.contains?(v, [",", "\""]),
+            do: ~s("#{String.replace(v, ~s("), ~s(""))}"),
+            else: v
         end)
         |> Enum.join(",")
       end)

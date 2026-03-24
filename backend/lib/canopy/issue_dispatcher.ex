@@ -90,7 +90,8 @@ defmodule Canopy.IssueDispatcher do
   # ── Private ───────────────────────────────────────────────────────────────────
 
   defp do_dispatch(issue_id, agent_id) do
-    with %Issue{} = issue <- Repo.get(Issue, issue_id) |> Repo.preload([:workspace, goal: :project]),
+    with %Issue{} = issue <-
+           Repo.get(Issue, issue_id) |> Repo.preload([:workspace, goal: :project]),
          %Agent{} = agent <- Repo.get(Agent, agent_id) |> Repo.preload(:workspace),
          :ok <- validate_agent(agent),
          {:ok, _checked_out_issue} <- Canopy.Work.checkout_issue(issue_id, agent_id) do
@@ -114,5 +115,4 @@ defmodule Canopy.IssueDispatcher do
 
   defp validate_agent(%Agent{status: status}) when status in ["idle", "active"], do: :ok
   defp validate_agent(%Agent{status: status}), do: {:error, {:agent_not_ready, status}}
-
 end

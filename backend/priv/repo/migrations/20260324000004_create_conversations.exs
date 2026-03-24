@@ -21,7 +21,10 @@ defmodule Canopy.Repo.Migrations.CreateConversations do
 
     create table(:messages, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :conversation_id, references(:conversations, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :conversation_id, references(:conversations, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :role, :string, null: false
       add :content, :text, null: false
       add :content_type, :string, default: "text"

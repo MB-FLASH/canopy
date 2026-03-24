@@ -60,7 +60,8 @@ defmodule Canopy.Notifications.Dispatcher do
       sender_type: "system",
       category: "budget",
       severity: severity,
-      title: "Budget #{if budget_info[:exceeded], do: "exceeded", else: "warning"}: #{agent.name}",
+      title:
+        "Budget #{if budget_info[:exceeded], do: "exceeded", else: "warning"}: #{agent.name}",
       body: budget_info[:message],
       action_url: "/budgets",
       action_label: "View Budget",

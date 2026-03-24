@@ -787,5 +787,4 @@ const RAW_SKILLS: RawSkill[] = [
   },
 ];
 
-
 export const SKILLS: LibrarySkill[] = RAW_SKILLS.map(enrichSkill);

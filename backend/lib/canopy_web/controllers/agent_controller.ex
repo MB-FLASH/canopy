@@ -5,6 +5,10 @@ defmodule CanopyWeb.AgentController do
   alias Canopy.Schemas.{Agent, Approval, CostEvent, Session, Schedule}
   import Ecto.Query
 
+  # Governance gate: agent deletion is a destructive operation requiring approval
+  # unless the requester holds an auto-approved role or the workspace policy opts out.
+  plug CanopyWeb.Plugs.Governance, [action: :delete_agent] when action in [:delete, :terminate]
+
   def index(conn, params) do
     workspace_id = params["workspace_id"]
     user_workspace_ids = conn.assigns[:user_workspace_ids] || []
@@ -34,12 +38,14 @@ defmodule CanopyWeb.AgentController do
           from ce in CostEvent,
             where: ce.agent_id in ^agent_ids and ce.inserted_at >= ^beginning_of_today,
             group_by: ce.agent_id,
-            select: {ce.agent_id, %{
-              cost_cents: coalesce(sum(ce.cost_cents), 0),
-              tokens_input: coalesce(sum(ce.tokens_input), 0),
-              tokens_output: coalesce(sum(ce.tokens_output), 0),
-              tokens_cache: coalesce(sum(ce.tokens_cache), 0)
-            }}
+            select:
+              {ce.agent_id,
+               %{
+                 cost_cents: coalesce(sum(ce.cost_cents), 0),
+                 tokens_input: coalesce(sum(ce.tokens_input), 0),
+                 tokens_output: coalesce(sum(ce.tokens_output), 0),
+                 tokens_cache: coalesce(sum(ce.tokens_cache), 0)
+               }}
         )
         |> Map.new()
       end
@@ -113,7 +119,8 @@ defmodule CanopyWeb.AgentController do
         total_sessions =
           Repo.aggregate(from(s in Session, where: s.agent_id == ^id), :count)
 
-        json(conn,
+        json(
+          conn,
           serialize_with_skills(agent)
           |> Map.merge(%{
             last_session:
@@ -319,6 +326,7 @@ defmodule CanopyWeb.AgentController do
         user_workspace_ids != [] -> where(query, [a], a.workspace_id in ^user_workspace_ids)
         true -> query
       end
+
     agents = Repo.all(query)
 
     json(conn, %{
@@ -441,6 +449,8 @@ defmodule CanopyWeb.AgentController do
       last_active_at: last_active_at,
       token_usage_today: token_usage_today,
       cost_today_cents: cost_today_cents,
+      last_session_summary: a.last_session_summary,
+      session_continuity: a.session_continuity || %{},
       created_at: a.inserted_at,
       inserted_at: a.inserted_at,
       updated_at: a.updated_at

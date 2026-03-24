@@ -39,8 +39,11 @@ defmodule CanopyWeb.ConversationController do
     query = if agent_id, do: where(query, [c], c.agent_id == ^agent_id), else: query
     query = if status, do: where(query, [c], c.status == ^status), else: query
 
-    count_query = from c in Conversation
-    count_query = if agent_id, do: where(count_query, [c], c.agent_id == ^agent_id), else: count_query
+    count_query = from(c in Conversation)
+
+    count_query =
+      if agent_id, do: where(count_query, [c], c.agent_id == ^agent_id), else: count_query
+
     count_query = if status, do: where(count_query, [c], c.status == ^status), else: count_query
 
     conversations = Repo.all(query)

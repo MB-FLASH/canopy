@@ -153,7 +153,9 @@ defmodule CanopyWeb.NotificationController do
   # --- Private helpers ---
 
   defp apply_workspace_filter(query, nil), do: query
-  defp apply_workspace_filter(query, workspace_id), do: where(query, [n], n.workspace_id == ^workspace_id)
+
+  defp apply_workspace_filter(query, workspace_id),
+    do: where(query, [n], n.workspace_id == ^workspace_id)
 
   defp apply_category_filter(query, nil), do: query
   defp apply_category_filter(query, ""), do: query
@@ -167,12 +169,14 @@ defmodule CanopyWeb.NotificationController do
   defp apply_unread_filter(query, _), do: query
 
   defp parse_int(nil, default), do: default
+
   defp parse_int(value, default) when is_binary(value) do
     case Integer.parse(value) do
       {n, _} when n >= 0 -> n
       _ -> default
     end
   end
+
   defp parse_int(value, _default) when is_integer(value), do: value
 
   defp serialize(%Notification{} = n) do

@@ -2197,6 +2197,222 @@ const routes: Array<{ pattern: RegExp; handler: RouteHandler }> = [
     handler: () => ({ capabilities: mockEnvironmentCapabilities() }),
   },
 
+  // ── Session Chain ──────────────────────────────────────────────────────────────
+  {
+    // GET /sessions/:id/chain
+    pattern: /^\/sessions\/([^/]+)\/chain$/,
+    handler: (path) => {
+      const sessionId = path.split("/")[2];
+      const now = new Date();
+      const ms = (n: number) =>
+        new Date(now.getTime() - n * 60_000).toISOString();
+      return {
+        sessions: [
+          {
+            id: `${sessionId}-1`,
+            sequence_number: 1,
+            context_summary:
+              "Analyzed the codebase structure. Identified 14 modules across 3 layers. Key findings: auth middleware missing rate-limit headers, database connection pool configured too low for production load.",
+            handoff_notes:
+              "Continue with middleware audit. Focus on /api/v1/agents endpoint. Pool size should be raised to at least 20.",
+            compaction_reason: "token_limit",
+            total_tokens: 42_500,
+            status: "completed",
+            started_at: ms(120),
+            ended_at: ms(60),
+          },
+          {
+            id: `${sessionId}-2`,
+            sequence_number: 2,
+            context_summary:
+              "Completed middleware audit. Rate-limit headers now present on all endpoints. Drafted connection pool config change.",
+            handoff_notes:
+              "Run integration tests against the updated pool config before merging.",
+            compaction_reason: "manual",
+            total_tokens: 31_200,
+            status: "completed",
+            started_at: ms(60),
+            ended_at: ms(10),
+          },
+          {
+            id: sessionId,
+            sequence_number: 3,
+            context_summary: null,
+            handoff_notes: null,
+            compaction_reason: null,
+            total_tokens: 8_900,
+            status: "active",
+            started_at: ms(10),
+            ended_at: null,
+          },
+        ],
+        total_tokens: 82_600,
+        total_cost_cents: 412,
+      };
+    },
+  },
+  {
+    // POST /sessions/:id/compact
+    pattern: /^\/sessions\/([^/]+)\/compact$/,
+    handler: () => undefined,
+  },
+
+  // ── Dispatch ───────────────────────────────────────────────────────────────────
+  {
+    // POST /dispatch/preview
+    pattern: /^\/dispatch\/preview$/,
+    handler: (_path, options) => {
+      let description = "";
+      try {
+        const body = JSON.parse(options.body as string) as {
+          description?: string;
+        };
+        description = body.description ?? "";
+      } catch {
+        /* ignore */
+      }
+      const lower = description.toLowerCase();
+      let recommended = "osa";
+      let reason = "General-purpose tasks default to the OSA adapter.";
+      const alternatives: { adapter: string; reason: string }[] = [];
+      let confidence = 0.72;
+
+      if (
+        lower.includes("code") ||
+        lower.includes("file") ||
+        lower.includes("build") ||
+        lower.includes("test")
+      ) {
+        recommended = "claude_code";
+        reason =
+          "Task involves code generation or file manipulation — Claude Code is optimised for this.";
+        confidence = 0.91;
+        alternatives.push({
+          adapter: "osa",
+          reason: "OSA can handle code tasks at lower speed.",
+        });
+        alternatives.push({
+          adapter: "codex",
+          reason: "Codex specialises in code completion workflows.",
+        });
+      } else if (
+        lower.includes("search") ||
+        lower.includes("research") ||
+        lower.includes("web") ||
+        lower.includes("browse")
+      ) {
+        recommended = "hermes";
+        reason =
+          "Task requires web search or research capabilities handled by the Hermes adapter.";
+        confidence = 0.85;
+        alternatives.push({
+          adapter: "osa",
+          reason: "OSA can perform basic web queries.",
+        });
+      } else if (
+        lower.includes("bash") ||
+        lower.includes("shell") ||
+        lower.includes("command") ||
+        lower.includes("script")
+      ) {
+        recommended = "bash";
+        reason =
+          "Task involves direct shell execution — the Bash adapter provides lowest-latency execution.";
+        confidence = 0.94;
+        alternatives.push({
+          adapter: "claude_code",
+          reason: "Claude Code can also run shell commands via tools.",
+        });
+      } else {
+        alternatives.push({
+          adapter: "claude_code",
+          reason: "Claude Code handles a wide range of tasks.",
+        });
+        alternatives.push({
+          adapter: "hermes",
+          reason: "Hermes is a good fallback for research-adjacent tasks.",
+        });
+      }
+
+      return {
+        recommended_adapter: recommended,
+        reason,
+        confidence,
+        alternatives,
+      };
+    },
+  },
+  {
+    // GET /dispatch/routes
+    pattern: /^\/dispatch\/routes$/,
+    handler: () => ({
+      routes: [
+        {
+          task_type: "code_generation",
+          adapter: "claude_code",
+          description: "Any task that generates, edits, or reviews code files.",
+        },
+        {
+          task_type: "shell_execution",
+          adapter: "bash",
+          description:
+            "Direct shell commands, scripts, and system-level operations.",
+        },
+        {
+          task_type: "web_research",
+          adapter: "hermes",
+          description:
+            "Tasks that require browsing or searching the web for information.",
+        },
+        {
+          task_type: "code_completion",
+          adapter: "codex",
+          description: "Inline code completion and suggestion workflows.",
+        },
+        {
+          task_type: "general",
+          adapter: "osa",
+          description:
+            "Default adapter for planning, reasoning, and general-purpose tasks.",
+        },
+        {
+          task_type: "http_webhook",
+          adapter: "http",
+          description: "Tasks that call external HTTP endpoints or webhooks.",
+        },
+        {
+          task_type: "ide_integration",
+          adapter: "cursor",
+          description: "Tasks tightly coupled to the Cursor IDE workflow.",
+        },
+      ],
+    }),
+  },
+
+  // ── Delegations ────────────────────────────────────────────────────────────────
+  {
+    // POST /delegations
+    pattern: /^\/delegations$/,
+    handler: (_path, options) => {
+      let body: Record<string, unknown> = {};
+      try {
+        body = JSON.parse(options.body as string);
+      } catch {
+        /* ignore */
+      }
+      const now = new Date().toISOString();
+      return {
+        id: `task-del-${Date.now()}`,
+        parent_task_id: (body.parent_task_id as string) ?? null,
+        description: (body.description as string) ?? "Delegated subtask",
+        adapter: (body.adapter as string) ?? "osa",
+        agent_id: (body.agent_id as string) ?? null,
+        status: "pending",
+        created_at: now,
+      };
+    },
+  },
+
   // ── Session message send ───────────────────────────────────────────────────────
   {
     pattern: /^\/sessions\/([^/]+)\/message$/,

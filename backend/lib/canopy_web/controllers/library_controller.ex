@@ -272,7 +272,13 @@ defmodule CanopyWeb.LibraryController do
 
   defp apply_sort(query, "rating") do
     order_by(query, [i],
-      desc: fragment("CASE WHEN ? > 0 THEN ?::float / ? ELSE 0 END", i.rating_count, i.rating_sum, i.rating_count)
+      desc:
+        fragment(
+          "CASE WHEN ? > 0 THEN ?::float / ? ELSE 0 END",
+          i.rating_count,
+          i.rating_sum,
+          i.rating_count
+        )
     )
   end
 

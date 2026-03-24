@@ -66,6 +66,49 @@ export interface CreateSessionRequest {
   context?: string;
 }
 
+// ── Session Continuity ────────────────────────────────────────────────────────
+
+export interface SessionChain {
+  sessions: SessionChainEntry[];
+  total_tokens: number;
+  total_cost_cents: number;
+}
+
+export interface SessionChainEntry {
+  id: string;
+  sequence_number: number;
+  context_summary: string | null;
+  handoff_notes: string | null;
+  compaction_reason: string | null;
+  total_tokens: number;
+  status: string;
+  started_at: string;
+  ended_at: string | null;
+}
+
+// ── Dispatch ──────────────────────────────────────────────────────────────────
+
+export interface DispatchPreview {
+  recommended_adapter: string;
+  reason: string;
+  confidence: number;
+  alternatives: { adapter: string; reason: string }[];
+}
+
+export interface DispatchRoute {
+  task_type: string;
+  adapter: string;
+  description: string;
+}
+
+// ── Governance ────────────────────────────────────────────────────────────────
+
+export interface GovernanceAction {
+  status: "allowed" | "pending_approval" | "denied";
+  approval_id?: string;
+  message?: string;
+}
+
 // ── Messages ──────────────────────────────────────────────────────────────────
 
 export type MessageRole = "user" | "assistant" | "system" | "tool";

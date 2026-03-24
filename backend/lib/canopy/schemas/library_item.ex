@@ -61,7 +61,9 @@ defmodule Canopy.Schemas.LibraryItem do
     ])
     |> validate_required([:name, :slug, :category, :config])
     |> validate_length(:name, min: 1, max: 200)
-    |> validate_format(:slug, ~r/^[a-z0-9_-]+$/, message: "must be lowercase alphanumeric with dashes/underscores")
+    |> validate_format(:slug, ~r/^[a-z0-9_-]+$/,
+      message: "must be lowercase alphanumeric with dashes/underscores"
+    )
     |> validate_inclusion(:category, @valid_categories)
     |> validate_inclusion(:status, @valid_statuses)
     |> validate_inclusion(:visibility, @valid_visibilities)

@@ -8,6 +8,9 @@ import type {
   DashboardData,
   HealthResponse,
   Session,
+  SessionChain,
+  DispatchPreview,
+  DispatchRoute,
   Schedule,
   HeartbeatRun,
   Issue,
@@ -904,6 +907,41 @@ export const sessions = {
     }),
   delete: (id: string) =>
     request<void>(`/sessions/${id}`, { method: "DELETE" }),
+};
+
+// ── Session Chain ─────────────────────────────────────────────────────────────
+
+export const sessionChain = {
+  get: (sessionId: string) =>
+    request<SessionChain>(`/sessions/${sessionId}/chain`),
+  compact: (sessionId: string) =>
+    request<void>(`/sessions/${sessionId}/compact`, { method: "POST" }),
+};
+
+// ── Dispatch ──────────────────────────────────────────────────────────────────
+
+export const dispatch = {
+  preview: (description: string) =>
+    request<DispatchPreview>("/dispatch/preview", {
+      method: "POST",
+      body: JSON.stringify({ description }),
+    }),
+  routes: () => request<{ routes: DispatchRoute[] }>("/dispatch/routes"),
+};
+
+// ── Delegations ───────────────────────────────────────────────────────────────
+
+export const delegations = {
+  create: (body: {
+    parent_task_id: string;
+    description: string;
+    adapter?: string;
+    agent_id?: string;
+  }) =>
+    request<Record<string, unknown>>("/delegations", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 };
 
 // ── Messages ──────────────────────────────────────────────────────────────────

@@ -7,6 +7,7 @@
   import PageShell from '$lib/components/layout/PageShell.svelte';
   import SessionOverview from '$lib/components/sessions/SessionOverview.svelte';
   import ExecutionWorkspace from '$lib/components/sessions/ExecutionWorkspace.svelte';
+  import SessionContinuity from '$lib/components/sessions/SessionContinuity.svelte';
   import LoadingSpinner from '$lib/components/shared/LoadingSpinner.svelte';
   import { sessionsStore } from '$lib/stores/sessions.svelte';
   import { toastStore } from '$lib/stores/toasts.svelte';
@@ -15,6 +16,8 @@
 
   onMount(async () => {
     if (!sessionId) return;
+    // Reset chain when entering a new session detail view
+    sessionsStore.chain = null;
     await sessionsStore.fetchById(sessionId);
     await sessionsStore.fetchTranscript(sessionId);
 
@@ -26,6 +29,7 @@
 
   onDestroy(() => {
     sessionsStore.stopLiveStream();
+    sessionsStore.chain = null;
   });
 
   async function handleReplay() {
@@ -87,6 +91,15 @@
           session={sessionsStore.selectedSession}
           onReplay={handleReplay}
           onExport={handleExport}
+        />
+
+        <!-- Continuity panel -->
+        <SessionContinuity
+          session={sessionsStore.selectedSession}
+          chain={sessionsStore.chain}
+          chainLoading={sessionsStore.chainLoading}
+          onCompact={() => sessionsStore.compactSession(sessionsStore.selectedSession!.id)}
+          onLoadChain={() => sessionsStore.fetchChain(sessionsStore.selectedSession!.id)}
         />
 
         <!-- Execution workspace (transcript + tool outputs) -->

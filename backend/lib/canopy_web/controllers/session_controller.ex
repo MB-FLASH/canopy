@@ -3,6 +3,7 @@ defmodule CanopyWeb.SessionController do
 
   alias Canopy.Repo
   alias Canopy.Schemas.{Session, SessionEvent, Agent}
+  alias Canopy.Sessions.{Compactor, Chain}
   import Ecto.Query
 
   def index(conn, params) do
@@ -51,8 +52,11 @@ defmodule CanopyWeb.SessionController do
     query = if agent_id, do: where(query, [s], s.agent_id == ^agent_id), else: query
     query = if status, do: where(query, [s], s.status == ^status), else: query
 
-    count_query = from s in Session
-    count_query = if agent_id, do: where(count_query, [s], s.agent_id == ^agent_id), else: count_query
+    count_query = from(s in Session)
+
+    count_query =
+      if agent_id, do: where(count_query, [s], s.agent_id == ^agent_id), else: count_query
+
     count_query = if status, do: where(count_query, [s], s.status == ^status), else: count_query
 
     sessions = Repo.all(query)
@@ -95,10 +99,71 @@ defmodule CanopyWeb.SessionController do
             workspace_branch: session.workspace_branch,
             started_at: session.started_at,
             completed_at: session.completed_at,
-            created_at: session.started_at
+            created_at: session.started_at,
+            # Continuity fields
+            context_summary: session.context_summary,
+            handoff_notes: session.handoff_notes,
+            continuation_data: session.continuation_data,
+            compaction_reason: session.compaction_reason,
+            parent_session_id: session.parent_session_id,
+            sequence_number: session.sequence_number
           }
         })
     end
+  end
+
+  def chain(conn, %{"id" => id}) do
+    case Repo.get(Session, id) do
+      nil ->
+        conn |> put_status(404) |> json(%{error: "not_found"})
+
+      session ->
+        # Load the full chain for this agent (scoped to same issue if present)
+        opts = if session.issue_id, do: [issue_id: session.issue_id], else: []
+        sessions = Chain.get_chain(session.agent_id, opts)
+        total_tokens = Chain.chain_token_usage(session)
+
+        json(conn, %{
+          chain: Chain.serialize_chain(sessions),
+          total_tokens: total_tokens,
+          session_count: length(sessions)
+        })
+    end
+  end
+
+  def compact(conn, %{"id" => id}) do
+    case Repo.get(Session, id)
+         |> then(fn s -> if s, do: Repo.preload(s, :agent), else: nil end) do
+      nil ->
+        conn |> put_status(404) |> json(%{error: "not_found"})
+
+      session ->
+        case Compactor.compact(session, "manual") do
+          {:ok, compacted} ->
+            json(conn, %{
+              session: %{
+                id: compacted.id,
+                context_summary: compacted.context_summary,
+                handoff_notes: compacted.handoff_notes,
+                continuation_data: compacted.continuation_data,
+                compaction_reason: compacted.compaction_reason
+              }
+            })
+
+          {:error, changeset} ->
+            conn
+            |> put_status(422)
+            |> json(%{error: "compaction_failed", details: format_errors(changeset)})
+        end
+    end
+  end
+
+  defp format_errors(changeset) do
+    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+      Regex.replace(~r"%{(\w+)}", msg, fn _, key ->
+        opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
+      end)
+    end)
   end
 
   def delete(conn, %{"id" => id}) do
@@ -108,7 +173,10 @@ defmodule CanopyWeb.SessionController do
 
       session ->
         case session
-             |> Ecto.Changeset.change(status: "cancelled", completed_at: DateTime.utc_now() |> DateTime.truncate(:second))
+             |> Ecto.Changeset.change(
+               status: "cancelled",
+               completed_at: DateTime.utc_now() |> DateTime.truncate(:second)
+             )
              |> Repo.update() do
           {:ok, updated} ->
             Canopy.EventBus.broadcast(

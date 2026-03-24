@@ -24,7 +24,10 @@ defmodule Canopy.Repo.Migrations.CreateWorkflows do
 
     create table(:workflow_steps, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :workflow_id, references(:workflows, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :workflow_id, references(:workflows, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :agent_id, references(:agents, type: :binary_id, on_delete: :nilify_all)
       add :name, :string, null: false
       add :step_type, :string, default: "agent_task"

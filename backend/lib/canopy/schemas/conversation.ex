@@ -22,7 +22,16 @@ defmodule Canopy.Schemas.Conversation do
 
   def changeset(conversation, attrs) do
     conversation
-    |> cast(attrs, [:title, :user_id, :status, :last_message_at, :message_count, :metadata, :agent_id, :workspace_id])
+    |> cast(attrs, [
+      :title,
+      :user_id,
+      :status,
+      :last_message_at,
+      :message_count,
+      :metadata,
+      :agent_id,
+      :workspace_id
+    ])
     |> validate_required([:agent_id])
     |> validate_inclusion(:status, ~w(active archived closed))
     |> foreign_key_constraint(:agent_id)

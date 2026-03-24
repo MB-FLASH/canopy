@@ -201,7 +201,12 @@ defmodule CanopyWeb.WebhookController do
 
   defp verify_secret(conn, %Webhook{secret: secret}) do
     signature = get_req_header(conn, "x-canopy-signature") |> List.first()
-    expected = "sha256=" <> Base.encode16(:crypto.mac(:hmac, :sha256, secret, conn.assigns[:raw_body] || ""), case: :lower)
+
+    expected =
+      "sha256=" <>
+        Base.encode16(:crypto.mac(:hmac, :sha256, secret, conn.assigns[:raw_body] || ""),
+          case: :lower
+        )
 
     if Plug.Crypto.secure_compare(signature || "", expected) do
       :ok

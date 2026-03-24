@@ -5,6 +5,10 @@ defmodule CanopyWeb.SpawnController do
   alias Canopy.Schemas.{Agent, Session}
   import Ecto.Query
 
+  # Governance gate: spawning an agent requires approval unless the requester
+  # holds an auto-approved role (e.g. admin) or the workspace policy opts out.
+  plug CanopyWeb.Plugs.Governance, [action: :spawn_agent] when action in [:create]
+
   def create(conn, params) do
     agent_id = params["agent_id"]
     # Fix 4: accept both "context" and "prompt" as the initial context
@@ -54,7 +58,13 @@ defmodule CanopyWeb.SpawnController do
     json(conn, %{
       instances:
         Enum.map(sessions, fn s ->
-          %{id: s.id, agent_id: s.agent_id, model: s.model, status: s.status, started_at: s.started_at}
+          %{
+            id: s.id,
+            agent_id: s.agent_id,
+            model: s.model,
+            status: s.status,
+            started_at: s.started_at
+          }
         end)
     })
   end
@@ -66,7 +76,10 @@ defmodule CanopyWeb.SpawnController do
 
       session ->
         case session
-             |> Ecto.Changeset.change(status: "cancelled", completed_at: DateTime.utc_now() |> DateTime.truncate(:second))
+             |> Ecto.Changeset.change(
+               status: "cancelled",
+               completed_at: DateTime.utc_now() |> DateTime.truncate(:second)
+             )
              |> Repo.update() do
           {:ok, _} ->
             json(conn, %{ok: true})

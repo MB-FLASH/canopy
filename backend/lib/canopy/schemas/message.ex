@@ -20,7 +20,15 @@ defmodule Canopy.Schemas.ConversationMessage do
 
   def changeset(message, attrs) do
     message
-    |> cast(attrs, [:role, :content, :content_type, :metadata, :token_count, :cost_cents, :conversation_id])
+    |> cast(attrs, [
+      :role,
+      :content,
+      :content_type,
+      :metadata,
+      :token_count,
+      :cost_cents,
+      :conversation_id
+    ])
     |> validate_required([:role, :content, :conversation_id])
     |> validate_inclusion(:role, ~w(user agent system))
     |> validate_inclusion(:content_type, ~w(text markdown code image tool_result))

@@ -18,6 +18,7 @@ defmodule Canopy.Heartbeat do
 
   alias Canopy.Repo
   alias Canopy.Schemas.{Agent, Session, SessionEvent, Workspace, WorkProduct, ActivityEvent}
+  alias Canopy.Sessions.Compactor
   import Ecto.Changeset, only: [change: 2]
   import Ecto.Query, only: [from: 2]
 
@@ -39,8 +40,14 @@ defmodule Canopy.Heartbeat do
     context = opts[:context] || "Perform your scheduled heartbeat."
     issue_id = opts[:issue_id]
 
+    # Pre-fetch the issue (if provided) so the dispatch router can inspect it.
+    # This is done before adapter resolution to enable task-level override routing.
+    prefetched_issue =
+      if issue_id, do: Repo.get(Canopy.Schemas.Issue, issue_id), else: nil
+
     with %Agent{} = agent <- Repo.get(Agent, agent_id),
-         {:ok, adapter_mod} <- Canopy.Adapter.resolve(agent.adapter) do
+         :clear <- Canopy.Governance.Gate.heartbeat_blocked?(agent_id),
+         {:ok, adapter_mod} <- resolve_adapter(prefetched_issue, agent) do
       session =
         if existing_session_id do
           Repo.get!(Session, existing_session_id)
@@ -77,16 +84,26 @@ defmodule Canopy.Heartbeat do
         timestamp: DateTime.utc_now()
       })
 
-      persist_activity_event(agent, "run.started", "Agent #{agent.name} started a heartbeat run", %{session_id: session.id})
+      persist_activity_event(
+        agent,
+        "run.started",
+        "Agent #{agent.name} started a heartbeat run",
+        %{session_id: session.id}
+      )
 
       if issue_id do
         Repo.transaction(fn ->
-          case Repo.one(from i in Canopy.Schemas.Issue, where: i.id == ^issue_id, lock: "FOR UPDATE") do
+          case Repo.one(
+                 from i in Canopy.Schemas.Issue, where: i.id == ^issue_id, lock: "FOR UPDATE"
+               ) do
             nil ->
               Logger.warning("[Heartbeat] Issue #{issue_id} not found, skipping checkout")
 
             %{checked_out_by: existing} when not is_nil(existing) ->
-              Logger.warning("[Heartbeat] Issue #{issue_id} already checked out by #{existing}, skipping")
+              Logger.warning(
+                "[Heartbeat] Issue #{issue_id} already checked out by #{existing}, skipping"
+              )
+
               Repo.rollback(:already_checked_out)
 
             issue ->
@@ -96,12 +113,23 @@ defmodule Canopy.Heartbeat do
         end)
       end
 
-      # Prepend system prompt to context if agent has one
+      # Build continuation context from previous sessions (cross-heartbeat resumption)
+      continuation_context = Compactor.build_continuation_context(agent)
+
+      # Prepend system prompt, then continuation context, then the task context
       full_context =
-        if agent.system_prompt && agent.system_prompt != "" do
-          "#{agent.system_prompt}\n\n---\n\n#{context}"
-        else
-          context
+        cond do
+          agent.system_prompt && agent.system_prompt != "" && continuation_context != "" ->
+            "#{agent.system_prompt}\n\n---\n\n#{continuation_context}#{context}"
+
+          agent.system_prompt && agent.system_prompt != "" ->
+            "#{agent.system_prompt}\n\n---\n\n#{context}"
+
+          continuation_context != "" ->
+            "#{continuation_context}#{context}"
+
+          true ->
+            context
         end
 
       params = %{
@@ -112,31 +140,48 @@ defmodule Canopy.Heartbeat do
         "url" => agent.config["url"]
       }
 
-      Logger.info("[Heartbeat] Executing agent #{agent.name} (#{agent.id}) via #{agent.adapter} in #{workspace.path}")
+      Logger.info(
+        "[Heartbeat] Executing agent #{agent.name} (#{agent.id}) via #{agent.adapter} in #{workspace.path}"
+      )
 
       totals =
         try do
           execute_and_stream(adapter_mod, params, session, agent)
         rescue
           e ->
-            Logger.error("[Heartbeat] FATAL: #{Exception.message(e)}\n#{Exception.format_stacktrace(__STACKTRACE__)}")
+            Logger.error(
+              "[Heartbeat] FATAL: #{Exception.message(e)}\n#{Exception.format_stacktrace(__STACKTRACE__)}"
+            )
+
             fail_session!(session, Exception.message(e))
             agent |> change(status: "error") |> Repo.update!()
 
             if issue_id do
               Repo.transaction(fn ->
-                case Repo.one(from i in Canopy.Schemas.Issue, where: i.id == ^issue_id, lock: "FOR UPDATE") do
+                case Repo.one(
+                       from i in Canopy.Schemas.Issue,
+                         where: i.id == ^issue_id,
+                         lock: "FOR UPDATE"
+                     ) do
                   nil ->
                     :ok
 
                   issue ->
                     issue |> change(status: "backlog", checked_out_by: nil) |> Repo.update!()
-                    Logger.info("[Heartbeat] Rolled back issue #{issue_id} to backlog after failure")
+
+                    Logger.info(
+                      "[Heartbeat] Rolled back issue #{issue_id} to backlog after failure"
+                    )
                 end
               end)
             end
 
-            broadcast_workspace(agent, %{event: "run.failed", agent_id: agent.id, session_id: session.id, error: Exception.message(e)})
+            broadcast_workspace(agent, %{
+              event: "run.failed",
+              agent_id: agent.id,
+              session_id: session.id,
+              error: Exception.message(e)
+            })
 
             CanopyWeb.Endpoint.broadcast("activity:global", "new_event", %{
               event: "run.failed",
@@ -145,12 +190,29 @@ defmodule Canopy.Heartbeat do
               timestamp: DateTime.utc_now()
             })
 
-            persist_activity_event(agent, "run.failed", "Agent #{agent.name} run failed: #{Exception.message(e)}", %{session_id: session.id})
+            persist_activity_event(
+              agent,
+              "run.failed",
+              "Agent #{agent.name} run failed: #{Exception.message(e)}",
+              %{session_id: session.id}
+            )
+
             raise e
         end
 
-      complete_session!(session, totals)
+      session = complete_session!(session, totals)
       agent |> change(status: "idle") |> Repo.update!()
+
+      # Compact the session — generate summary and handoff for next heartbeat
+      case Compactor.compact(session, "session_complete") do
+        {:ok, _compacted} ->
+          Logger.info("[Heartbeat] Session #{session.id} compacted successfully")
+
+        {:error, reason} ->
+          Logger.warning(
+            "[Heartbeat] Session compaction failed for #{session.id}: #{inspect(reason)}"
+          )
+      end
 
       if issue_id do
         case Repo.get(Canopy.Schemas.Issue, issue_id) do
@@ -176,7 +238,9 @@ defmodule Canopy.Heartbeat do
                 Logger.info("[Heartbeat] Created WorkProduct #{wp.id} for issue #{issue_id}")
 
               {:error, changeset} ->
-                Logger.warning("[Heartbeat] Failed to create WorkProduct for issue #{issue_id}: #{inspect(changeset.errors)}")
+                Logger.warning(
+                  "[Heartbeat] Failed to create WorkProduct for issue #{issue_id}: #{inspect(changeset.errors)}"
+                )
             end
         end
       end
@@ -210,12 +274,27 @@ defmodule Canopy.Heartbeat do
         timestamp: DateTime.utc_now()
       })
 
-      persist_activity_event(agent, "run.completed", "Agent #{agent.name} completed run (cost: #{totals.cost}\u00A2)", %{session_id: session.id, cost_cents: totals.cost})
+      persist_activity_event(
+        agent,
+        "run.completed",
+        "Agent #{agent.name} completed run (cost: #{totals.cost}\u00A2)",
+        %{session_id: session.id, cost_cents: totals.cost}
+      )
 
       {:ok, session.id}
     else
-      nil -> {:error, :agent_not_found}
-      {:error, reason} -> {:error, reason}
+      nil ->
+        {:error, :agent_not_found}
+
+      {:blocked, approval_ids} ->
+        Logger.info(
+          "[Heartbeat] Skipping agent #{agent_id}: #{length(approval_ids)} pending approval(s) blocking execution"
+        )
+
+        {:error, {:blocked_by_approvals, approval_ids}}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -233,6 +312,7 @@ defmodule Canopy.Heartbeat do
     |> Repo.insert!()
   end
 
+  # Returns the updated session struct so callers can pass it to Compactor.
   defp complete_session!(session, totals) do
     session
     |> change(%{
@@ -262,8 +342,11 @@ defmodule Canopy.Heartbeat do
   defp resolve_workspace(agent) do
     workspace_path =
       case Repo.get(Workspace, agent.workspace_id) do
-        %Workspace{path: path} when is_binary(path) and path != "" -> path
-        _ -> raise "No workspace path found for agent #{agent.id} (workspace_id: #{inspect(agent.workspace_id)}). Cannot execute without a valid workspace."
+        %Workspace{path: path} when is_binary(path) and path != "" ->
+          path
+
+        _ ->
+          raise "No workspace path found for agent #{agent.id} (workspace_id: #{inspect(agent.workspace_id)}). Cannot execute without a valid workspace."
       end
 
     Logger.info("[Heartbeat] Resolved workspace path: #{workspace_path} for agent #{agent.id}")
@@ -272,9 +355,14 @@ defmodule Canopy.Heartbeat do
       %{path: workspace_path, strategy: :shared}
     else
       case Canopy.ExecutionWorkspace.create(workspace_path, strategy: :worktree) do
-        {:ok, ws} -> ws
+        {:ok, ws} ->
+          ws
+
         {:error, reason} ->
-          Logger.warning("[Heartbeat] Worktree creation failed (#{inspect(reason)}), using shared workspace")
+          Logger.warning(
+            "[Heartbeat] Worktree creation failed (#{inspect(reason)}), using shared workspace"
+          )
+
           %{path: workspace_path, strategy: :shared}
       end
     end
@@ -373,6 +461,36 @@ defmodule Canopy.Heartbeat do
   end
 
   defp model_rates(_), do: {0.3, 1.5, 0.03}
+
+  # Resolve the adapter to use for this heartbeat run.
+  #
+  # Priority:
+  #   1. Task-level adapter_override (if an issue is present and has one)
+  #   2. Dynamic dispatch via Dispatch.Router (label -> content -> agent default)
+  #
+  # Falls back to the agent's default adapter on any routing failure so the
+  # heartbeat always proceeds rather than crashing at the resolution step.
+  defp resolve_adapter(nil, agent), do: Canopy.Adapter.resolve(agent.adapter)
+
+  defp resolve_adapter(%{adapter_override: override}, agent)
+       when is_binary(override) and override != "" do
+    case Canopy.Adapter.resolve(override) do
+      {:ok, _} = ok ->
+        Logger.info("[Heartbeat] Using task adapter override: #{override}")
+        ok
+
+      {:error, _} ->
+        Logger.warning(
+          "[Heartbeat] Unknown adapter override #{inspect(override)}, falling back to agent default"
+        )
+
+        Canopy.Adapter.resolve(agent.adapter)
+    end
+  end
+
+  defp resolve_adapter(issue, agent) do
+    Canopy.Dispatch.Router.resolve(issue, agent)
+  end
 
   defp persist_activity_event(agent, event_type, message, metadata) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)

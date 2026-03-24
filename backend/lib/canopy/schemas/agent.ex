@@ -17,6 +17,8 @@ defmodule Canopy.Schemas.Agent do
     field :config, :map, default: %{}
     field :system_prompt, :string
     field :avatar_emoji, :string, default: "🤖"
+    field :last_session_summary, :string
+    field :session_continuity, :map, default: %{}
 
     belongs_to :workspace, Canopy.Schemas.Workspace
     belongs_to :reports_to_agent, Canopy.Schemas.Agent, foreign_key: :reports_to
@@ -47,11 +49,16 @@ defmodule Canopy.Schemas.Agent do
       :workspace_id,
       :reports_to,
       :avatar_emoji,
-      :team_id
+      :team_id,
+      :last_session_summary,
+      :session_continuity
     ])
     |> validate_required([:slug, :name, :role, :adapter, :model, :workspace_id])
     |> validate_inclusion(:status, ~w(active idle working running sleeping error paused))
-    |> validate_inclusion(:adapter, ~w(osa claude-code codex bash http openclaw cursor gemini))
+    |> validate_inclusion(
+      :adapter,
+      ~w(osa claude-code codex bash http openclaw cursor gemini aider jido-claw windsurf)
+    )
     |> unique_constraint([:workspace_id, :slug])
   end
 end

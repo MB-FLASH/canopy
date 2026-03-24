@@ -1,4 +1,4 @@
-.PHONY: setup dev app backend desktop build check test clean doctor
+.PHONY: setup dev app backend desktop build check test lint format release db.reset db.migrate clean doctor
 
 # ── One-Liner ────────────────────────────────────────────────────────────────
 # make setup     # First time: install ALL deps (backend + desktop)
@@ -49,6 +49,23 @@ check:
 test:
 	cd backend && mix test
 	cd desktop && npm run test
+
+lint:           ## Run Elixir + TypeScript linters
+	cd backend && mix credo --strict
+	cd desktop && npx eslint src/
+
+format:         ## Auto-format all code
+	cd backend && mix format
+	cd desktop && npx prettier --write "src/**/*.{ts,svelte,css}"
+
+release:        ## Build and package the Tauri desktop app
+	cd desktop && npm run tauri build
+
+db.reset:       ## Drop, create, migrate, and seed the database
+	cd backend && mix ecto.reset
+
+db.migrate:     ## Run pending migrations
+	cd backend && mix ecto.migrate
 
 clean:
 	cd desktop && rm -rf build .svelte-kit node_modules

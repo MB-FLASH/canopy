@@ -1,5 +1,5 @@
 // Agent data — 153 agents across 16 categories
-  
+
 import type { LibraryAgent } from "./types";
 import type { RawAgent } from "./enrichment";
 import { enrichAgent } from "./enrichment";
