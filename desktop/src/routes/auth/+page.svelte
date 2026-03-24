@@ -39,10 +39,12 @@
       return;
     }
 
-    // Dev auto-login may have already produced a valid token — skip auth UI.
+    // Token already valid (dev auto-login or restored session) — skip auth UI.
+    // Backend has users and a workspace: always go to /app.
+    // Re-checking onboarding state here would wrongly send returning users to
+    // /onboarding if the flag was cleared (e.g. after a logout + localStorage wipe).
     if (getToken()) {
-      const onboardingDone = isOnboardingComplete();
-      goto(onboardingDone ? '/app' : '/onboarding', { replaceState: true });
+      goto('/app', { replaceState: true });
       return;
     }
 
@@ -50,18 +52,6 @@
     mode = isFirstRun() ? 'register' : 'login';
     statusLoading = false;
   });
-
-  /** Read both localStorage onboarding keys (handles legacy + new format). */
-  function isOnboardingComplete(): boolean {
-    if (typeof localStorage === 'undefined') return false;
-    if (localStorage.getItem('canopy-onboarding-complete') === 'true') return true;
-    try {
-      const raw = localStorage.getItem('canopy-onboarding');
-      return raw ? (JSON.parse(raw) as { completed?: boolean }).completed === true : false;
-    } catch {
-      return false;
-    }
-  }
 
   // ── Derived ───────────────────────────────────────────────────────────────
 
