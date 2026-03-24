@@ -54,6 +54,11 @@
   }
 </script>
 
+<div class="ap-moved-banner" role="note">
+  Approvals are now in your Inbox.
+  <a class="ap-moved-link" href="/app/inbox?tab=approvals">Go to Inbox → Approvals</a>
+</div>
+
 <PageShell
   title="Approvals"
   badge={approvalsStore.pendingCount > 0 ? approvalsStore.pendingCount : undefined}
@@ -181,6 +186,35 @@
 </PageShell>
 
 <style>
+  /* ── Moved banner ───────────────────────────────────────────────────────── */
+  .ap-moved-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 14px;
+    margin-bottom: 12px;
+    border-radius: 6px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .ap-moved-link {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border-hover);
+    white-space: nowrap;
+  }
+
+  .ap-moved-link:hover {
+    color: var(--text-primary);
+    border-bottom-color: var(--text-primary);
+  }
+
   /* ── Filter bar ─────────────────────────────────────────────────────────── */
   .ap-filter-group {
     display: flex;
