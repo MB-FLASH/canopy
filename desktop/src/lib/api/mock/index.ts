@@ -78,6 +78,14 @@ import { mockApprovals } from "./approvals";
 import { mockOrganizations, mockOrgMembers } from "./organizations";
 import { mockLabels } from "./labels";
 import { mockPlugins, mockPluginLogs } from "./plugins";
+import {
+  mockEnvironmentApps,
+  mockEnvironmentAgentApps,
+  mockEnvironmentResources,
+  mockEnvironmentCapabilities,
+  grantEnvironmentAccess,
+  revokeEnvironmentAccess,
+} from "./environment";
 import { mockSignals } from "./signals";
 import { mockAudit } from "./audit";
 import { mockLogs } from "./logs";
@@ -1513,6 +1521,47 @@ const routes: Array<{ pattern: RegExp; handler: RouteHandler }> = [
       sessions: 0,
       agents: 0,
     }),
+  },
+
+  // ── Environment ────────────────────────────────────────────────────────────────
+  {
+    pattern: /^\/environment\/apps\/([^/]+)\/(grant|revoke)$/,
+    handler: (path, options) => {
+      const parts = path.split("/");
+      const appId = parts[3];
+      const action = parts[4];
+      let body: Record<string, unknown> = {};
+      try {
+        body = JSON.parse(
+          typeof options.body === "string"
+            ? options.body
+            : JSON.stringify(options.body ?? {}),
+        );
+      } catch {
+        /* ignore */
+      }
+      const agentId = (body.agent_id as string) ?? "agent-1";
+      if (action === "grant") {
+        return { app: grantEnvironmentAccess(appId, agentId) };
+      }
+      return { app: revokeEnvironmentAccess(appId, agentId) };
+    },
+  },
+  {
+    pattern: /^\/environment\/apps$/,
+    handler: () => ({ apps: mockEnvironmentApps() }),
+  },
+  {
+    pattern: /^\/environment\/agent-apps$/,
+    handler: () => ({ agent_apps: mockEnvironmentAgentApps() }),
+  },
+  {
+    pattern: /^\/environment\/resources$/,
+    handler: () => ({ resources: mockEnvironmentResources() }),
+  },
+  {
+    pattern: /^\/environment\/capabilities$/,
+    handler: () => ({ capabilities: mockEnvironmentCapabilities() }),
   },
 
   // ── Session message send ───────────────────────────────────────────────────────

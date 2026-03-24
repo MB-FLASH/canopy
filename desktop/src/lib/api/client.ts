@@ -1827,6 +1827,38 @@ export const executionWorkspaces = {
     request<void>(`/execution-workspaces/${id}`, { method: "DELETE" }),
 };
 
+// ── Environment ───────────────────────────────────────────────────────────────
+
+export const environment = {
+  apps: async (): Promise<unknown[]> => {
+    const data = await request<{ apps: unknown[] }>("/environment/apps");
+    return data.apps ?? [];
+  },
+  agentApps: async (): Promise<unknown[]> => {
+    const data = await request<{ agent_apps: unknown[] }>(
+      "/environment/agent-apps",
+    );
+    return data.agent_apps ?? [];
+  },
+  resources: () => request<unknown>("/environment/resources"),
+  capabilities: async (): Promise<unknown[]> => {
+    const data = await request<{ capabilities: unknown[] }>(
+      "/environment/capabilities",
+    );
+    return data.capabilities ?? [];
+  },
+  grantAccess: (appId: string, agentId: string) =>
+    request<unknown>(`/environment/apps/${appId}/grant`, {
+      method: "POST",
+      body: JSON.stringify({ agent_id: agentId }),
+    }),
+  revokeAccess: (appId: string, agentId: string) =>
+    request<unknown>(`/environment/apps/${appId}/revoke`, {
+      method: "POST",
+      body: JSON.stringify({ agent_id: agentId }),
+    }),
+};
+
 // ── Enable/Disable Mock ──────────────────────────────────────────────────────
 // These are async because disabling mock purges localStorage and notifies the
 // mock module, both of which are best-effort async operations.

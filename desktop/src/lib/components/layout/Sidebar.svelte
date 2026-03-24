@@ -133,71 +133,47 @@
       </button>
     </div>
 
-    <!-- New Issue -->
-    <div class="sb-new-row">
-      <button class="sb-new-issue" onclick={() => goto('/app/issues?new=1')}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d={ICONS.plus} />
-        </svg>
-        New Issue
-      </button>
-    </div>
   {/if}
 
   <!-- Scrollable nav area -->
   <nav class="sb-nav" aria-label="Sidebar navigation">
-    <!-- CORE section (no label header) -->
+    <!-- DAILY (no label header) -->
     <div class="sb-core">
-      <SidebarNavItem href="/app" label="Dashboard" icon={ICONS.dashboard} shortcut={!isCollapsed ? '⌘1' : undefined} active={isActive('/app')} />
-      <SidebarNavItem href="/app/inbox" label="Inbox" icon={ICONS.inbox} shortcut={!isCollapsed ? '⌘2' : undefined} active={isActive('/app/inbox')} />
+      <SidebarNavItem href="/app" label="Home" icon={ICONS.dashboard} shortcut={!isCollapsed ? '⌘1' : undefined} active={isActive('/app')} />
+      <SidebarNavItem href="/app/inbox" label="Inbox" icon={ICONS.inbox} shortcut={!isCollapsed ? '⌘2' : undefined} badge={approvalsStore.pendingCount || undefined} active={isActive('/app/inbox')} />
       <SidebarNavItem href="/app/office" label="Office" icon={ICONS.office} shortcut={!isCollapsed ? '⌘3' : undefined} active={isActive('/app/office')} />
-      <SidebarNavItem href="/app/library" label="Library" icon={ICONS.library} shortcut={!isCollapsed ? '⌘L' : undefined} active={isActive('/app/library')} />
     </div>
 
     {#if !isCollapsed}
       <div class="sb-divider" aria-hidden="true"></div>
 
-      <!-- OPS -->
-      <SidebarSection label="Ops">
-        <SidebarNavItem href="/app/issues" label="Issues" icon={ICONS.issues} active={isActive('/app/issues')} />
-        <SidebarNavItem href="/app/goals" label="Goals" icon={ICONS.goals} active={isActive('/app/goals')} />
-        <SidebarNavItem href="/app/approvals" label="Approvals" icon={ICONS.approvals} badge={approvalsStore.pendingCount || undefined} active={isActive('/app/approvals')} />
-        <SidebarNavItem href="/app/documents" label="Documents" icon={ICONS.documents} active={isActive('/app/documents')} />
-      </SidebarSection>
-
-      <div class="sb-divider" aria-hidden="true"></div>
-
-      <!-- STRUCTURE -->
-      <SidebarSection label="Structure">
-        <SidebarNavItem href="/app/hierarchy" label="Hierarchy" icon={ICONS.hierarchy} active={isActive('/app/hierarchy')} />
-        <SidebarNavItem href="/app/divisions" label="Divisions" icon={ICONS.divisions} active={isActive('/app/divisions')} />
-        <SidebarNavItem href="/app/departments" label="Departments" icon={ICONS.departments} active={isActive('/app/departments')} />
-        <SidebarNavItem href="/app/teams" label="Teams" icon={ICONS.teams} active={isActive('/app/teams')} />
-      </SidebarSection>
-
-      <div class="sb-divider" aria-hidden="true"></div>
-
-      <!-- PROJECTS -->
-      <SidebarSection label="Projects">
+      <!-- WORK -->
+      <SidebarSection label="Work">
         {#if workspaceStore.workspaces.length === 0}
-          <div class="sb-empty">No projects</div>
+          <SidebarNavItem href="/app/projects" label="Projects" icon={ICONS.workspaces} active={isActive('/app/projects')} />
         {:else}
-          {#each workspaceStore.workspaces as ws (ws.id)}
+          {#each workspaceStore.workspaces.slice(0, 5) as ws (ws.id)}
             <SidebarNavItem href="/app/projects?workspace={ws.id}" label={ws.name} icon={ICONS.workspaces} active={currentPath === '/app/projects' && $page.url.searchParams.get('workspace') === ws.id} />
           {/each}
+          {#if workspaceStore.workspaces.length > 5}
+            <SidebarNavItem href="/app/projects" label="All projects ({workspaceStore.workspaces.length})" icon={ICONS.workspaces} active={currentPath === '/app/projects'} />
+          {/if}
         {/if}
-        <button class="sb-inline-action" onclick={() => goto('/app/projects?new=1')}>
+        <SidebarNavItem href="/app/issues" label="Issues" icon={ICONS.issues} active={isActive('/app/issues')} />
+        <SidebarNavItem href="/app/goals" label="Goals" icon={ICONS.goals} active={isActive('/app/goals')} />
+        <SidebarNavItem href="/app/documents" label="Documents" icon={ICONS.documents} active={isActive('/app/documents')} />
+        <button class="sb-inline-action" onclick={() => goto('/app/issues?new=1')}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d={ICONS.plus} />
           </svg>
-          New Project
+          New Issue
         </button>
       </SidebarSection>
 
       <div class="sb-divider" aria-hidden="true"></div>
 
-      <!-- TEAM -->
-      <SidebarSection label="Team" badge={agentsStore.agents.length || undefined}>
+      <!-- AGENTS -->
+      <SidebarSection label="Agents" badge={agentsStore.agents.length || undefined}>
         {#if agentsStore.agents.length === 0}
           <div class="sb-empty">No agents</div>
         {:else}
@@ -289,59 +265,58 @@
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d={ICONS.plus} />
           </svg>
-          Hire Agent
+          Deploy Agent
         </button>
       </SidebarSection>
 
       <div class="sb-divider" aria-hidden="true"></div>
 
-      <!-- MONITOR -->
-      <SidebarSection label="Monitor">
+      <!-- OBSERVE -->
+      <SidebarSection label="Observe">
         <SidebarNavItem href="/app/activity" label="Activity" icon={ICONS.activity} active={isActive('/app/activity')} />
         <SidebarNavItem href="/app/sessions" label="Sessions" icon={ICONS.sessions} active={isActive('/app/sessions')} />
-        <SidebarNavItem href="/app/logs" label="Logs" icon={ICONS.logs} active={isActive('/app/logs')} />
         <SidebarNavItem href="/app/costs" label="Costs" icon={ICONS.costs} active={isActive('/app/costs')} />
-        <SidebarNavItem href="/app/memory" label="Memory" icon={ICONS.memory} active={isActive('/app/memory')} />
         <SidebarNavItem href="/app/signals" label="Signals" icon={ICONS.signals} active={isActive('/app/signals')} />
       </SidebarSection>
 
       <div class="sb-divider" aria-hidden="true"></div>
 
-      <!-- ORCHESTRATE -->
-      <SidebarSection label="Orchestrate">
+      <!-- AUTOMATE -->
+      <SidebarSection label="Automate">
         <SidebarNavItem href="/app/skills" label="Skills" icon={ICONS.skills} active={isActive('/app/skills')} />
         <SidebarNavItem href="/app/schedules" label="Schedules" icon={ICONS.schedules} active={isActive('/app/schedules')} />
         <SidebarNavItem href="/app/spawn" label="Spawn" icon={ICONS.spawn} active={isActive('/app/spawn')} />
-        <SidebarNavItem href="/app/webhooks" label="Webhooks" icon={ICONS.webhooks} active={isActive('/app/webhooks')} />
         <SidebarNavItem href="/app/alerts" label="Alerts" icon={ICONS.alerts} active={isActive('/app/alerts')} />
         <SidebarNavItem href="/app/integrations" label="Integrations" icon={ICONS.integrations} active={isActive('/app/integrations')} />
-        <SidebarNavItem href="/app/plugins" label="Plugins" icon={ICONS.plugins} active={isActive('/app/plugins')} />
       </SidebarSection>
 
       <div class="sb-divider" aria-hidden="true"></div>
 
-      <!-- ADMIN (collapsed by default) -->
-      <SidebarSection label="Admin" defaultOpen={false}>
-        <SidebarNavItem href="/app/users" label="Users" icon={ICONS.users} active={isActive('/app/users')} />
-        <SidebarNavItem href="/app/organizations" label="Organizations" icon={ICONS.workspaces} active={isActive('/app/organizations')} />
-        <SidebarNavItem href="/app/audit" label="Audit" icon={ICONS.audit} active={isActive('/app/audit')} />
+      <!-- SYSTEM (collapsed by default) -->
+      <SidebarSection label="System" defaultOpen={false}>
+        <SidebarNavItem href="/app/organizations" label="Organization" icon={ICONS.hierarchy} active={isActive('/app/organizations')} />
+        <SidebarNavItem href="/app/hierarchy" label="Org Chart" icon={ICONS.divisions} active={isActive('/app/hierarchy')} />
+        <SidebarNavItem href="/app/environment" label="Environment" icon={ICONS.signals} active={isActive('/app/environment')} />
         <SidebarNavItem href="/app/gateways" label="Gateways" icon={ICONS.gateways} active={isActive('/app/gateways')} />
-        <SidebarNavItem href="/app/config" label="Config" icon={ICONS.config} active={isActive('/app/config')} />
+        <SidebarNavItem href="/app/library" label="Library" icon={ICONS.library} active={isActive('/app/library')} />
         <SidebarNavItem href="/app/templates" label="Templates" icon={ICONS.templates} active={isActive('/app/templates')} />
-        <SidebarNavItem href="/app/workspaces" label="Workspaces" icon={ICONS.workspaces} active={isActive('/app/workspaces')} />
-        <SidebarNavItem href="/app/secrets" label="Secrets" icon={ICONS.secrets} active={isActive('/app/secrets')} />
+        <SidebarNavItem href="/app/plugins" label="Plugins" icon={ICONS.plugins} active={isActive('/app/plugins')} />
+        <SidebarNavItem href="/app/webhooks" label="Webhooks" icon={ICONS.webhooks} active={isActive('/app/webhooks')} />
+        <SidebarNavItem href="/app/users" label="Users" icon={ICONS.users} active={isActive('/app/users')} />
         <SidebarNavItem href="/app/access" label="Access" icon={ICONS.access} active={isActive('/app/access')} />
+        <SidebarNavItem href="/app/secrets" label="Secrets" icon={ICONS.secrets} active={isActive('/app/secrets')} />
         <SidebarNavItem href="/app/execution-workspaces" label="Exec Workspaces" icon={ICONS.execWorkspaces} active={isActive('/app/execution-workspaces')} />
+        <SidebarNavItem href="/app/audit" label="Audit" icon={ICONS.audit} active={isActive('/app/audit')} />
+        <SidebarNavItem href="/app/config" label="Config" icon={ICONS.config} active={isActive('/app/config')} />
       </SidebarSection>
     {:else}
       <!-- Collapsed icon-only mode for secondary sections -->
       <div class="sb-collapsed-icons">
-        <SidebarNavItem href="/app/library" label="Library" icon={ICONS.library} active={isActive('/app/library')} />
         <SidebarNavItem href="/app/issues" label="Issues" icon={ICONS.issues} active={isActive('/app/issues')} />
+        <SidebarNavItem href="/app/agents" label="Agents" icon={ICONS.agent} active={isActive('/app/agents')} />
         <SidebarNavItem href="/app/activity" label="Activity" icon={ICONS.activity} active={isActive('/app/activity')} />
         <SidebarNavItem href="/app/costs" label="Costs" icon={ICONS.costs} active={isActive('/app/costs')} />
         <SidebarNavItem href="/app/skills" label="Skills" icon={ICONS.skills} active={isActive('/app/skills')} />
-        <SidebarNavItem href="/app/schedules" label="Schedules" icon={ICONS.schedules} active={isActive('/app/schedules')} />
         <SidebarNavItem href="/app/settings" label="Settings" icon={ICONS.config} active={isActive('/app/settings')} />
       </div>
     {/if}
@@ -463,35 +438,6 @@
   .sb-search-hint {
     font-size: 10px;
     color: var(--text-muted);
-  }
-
-  /* New Issue */
-  .sb-new-row {
-    padding: 4px 8px 8px;
-    flex-shrink: 0;
-  }
-
-  .sb-new-issue {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    width: 100%;
-    height: 28px;
-    padding: 0 8px;
-    border: 1px solid var(--border-default);
-    background: transparent;
-    color: var(--text-secondary);
-    cursor: pointer;
-    border-radius: var(--radius-xs);
-    font-size: 12px;
-    font-weight: 500;
-    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
-  }
-
-  .sb-new-issue:hover {
-    background: var(--bg-surface);
-    border-color: var(--border-hover);
-    color: var(--text-primary);
   }
 
   /* Nav */

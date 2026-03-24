@@ -225,6 +225,14 @@ defmodule CanopyWeb.Router do
     # Hierarchy (full org tree)
     get "/hierarchy", HierarchyController, :show
 
+    # Environment
+    get "/environment/apps", EnvironmentController, :apps
+    get "/environment/agent-apps", EnvironmentController, :agent_apps
+    get "/environment/resources", EnvironmentController, :resources
+    get "/environment/capabilities", EnvironmentController, :capabilities
+    post "/environment/apps/:id/grant", EnvironmentController, :grant_access
+    post "/environment/apps/:id/revoke", EnvironmentController, :revoke_access
+
     # Invitations
     resources "/invitations", InvitationController, only: [:index, :create]
     post "/invitations/:token/accept", InvitationController, :accept
