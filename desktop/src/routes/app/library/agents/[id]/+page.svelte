@@ -127,7 +127,7 @@
               </div>
               <div class="lda-stat" role="listitem">
                 <span class="lda-stat-icon" aria-hidden="true">◆</span>
-                <span class="lda-stat-value">{agent.rating.toFixed(1)}</span>
+                <span class="lda-stat-value">{(agent?.rating ?? 0).toFixed(1)}</span>
                 <span class="lda-stat-label">Rating</span>
               </div>
               <div class="lda-stat" role="listitem">

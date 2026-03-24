@@ -60,7 +60,7 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
-  config :canopy, Canopy.Guardian, secret_key: guardian_secret_key
+  config :canopy, Canopy.Guardian, secret_key: guardian_secret_key, ttl: {7, :days}
 
   host = System.get_env("PHX_HOST") || "example.com"
 

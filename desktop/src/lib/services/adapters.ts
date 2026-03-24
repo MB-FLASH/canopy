@@ -78,7 +78,9 @@ export async function checkAdapterHealth(id: string): Promise<HealthResult> {
   };
 
   const endpoint = healthEndpoints[id];
-  if (endpoint) {
+  // Skip localhost checks in browser (non-Tauri) context
+  const isBrowser = typeof window !== 'undefined' && !window.location.hostname.includes('localhost');
+  if (endpoint && !isBrowser) {
     try {
       const res = await fetch(endpoint, {
         signal: AbortSignal.timeout(3000),

@@ -57,11 +57,11 @@ class GoalsStore {
   );
   totalCount = $derived(this.flatGoals.length);
 
-  async fetchGoals(projectId: string): Promise<void> {
+  async fetchGoals(projectId?: string): Promise<void> {
     this.loading = true;
-    this.activeProjectId = projectId;
+    this.activeProjectId = projectId ?? '';
     try {
-      this.goals = await goalsApi.list(projectId);
+      this.goals = await goalsApi.list(projectId || undefined);
       // Refresh selected from the new tree so stale references don't keep
       // the GoalDetail backdrop rendered and blocking the page.
       if (this.selected) {

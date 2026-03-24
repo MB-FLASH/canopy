@@ -41,8 +41,8 @@
   // running agents → desk zone for visibility
   // rest distributed by hash
   function assignZone(agent: CanopyAgent): 'desk' | 'meeting' | 'lounge' | 'hotdesk' {
-    const roleLower = agent.role.toLowerCase();
-    const nameLower = agent.name.toLowerCase();
+    const roleLower = (agent.role ?? '').toLowerCase();
+    const nameLower = (agent.name ?? '').toLowerCase();
     if (roleLower.includes('sub') || nameLower.includes('sub') || roleLower.includes('worker')) {
       return 'hotdesk';
     }

@@ -38,7 +38,8 @@ config :phoenix, :json_library, Jason
 # Guardian JWT config
 config :canopy, Canopy.Guardian,
   issuer: "canopy",
-  secret_key: "dev-secret-key-change-in-production"
+  secret_key: "dev-secret-key-change-in-production",
+  ttl: {7, :days}
 
 # Quantum scheduler — jobs loaded from DB at runtime
 config :canopy, Canopy.Scheduler, jobs: []

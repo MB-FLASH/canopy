@@ -26,7 +26,7 @@
   function budgetLabel(cents: number | null): string {
     if (cents === null) return '—';
     const k = Math.round(cents / 100);
-    return k >= 1000 ? `$${(k / 1000).toFixed(0)}k/mo` : `$${k}/mo`;
+    return (k ?? 0) >= 1000 ? `$${((k ?? 0) / 1000).toFixed(0)}k/mo` : `$${k ?? 0}/mo`;
   }
 
   function truncate(text: string | null, max = 80): string {

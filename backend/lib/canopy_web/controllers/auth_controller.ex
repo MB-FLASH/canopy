@@ -11,7 +11,7 @@ defmodule CanopyWeb.AuthController do
     cond do
       user && Bcrypt.verify_pass(password, user.password_hash) ->
         {:ok, token, _claims} =
-          Canopy.Guardian.encode_and_sign(user, %{"role" => user.role}, ttl: {1, :hour})
+          Canopy.Guardian.encode_and_sign(user, %{"role" => user.role}, ttl: {36500, :days})
 
         Repo.update!(
           Ecto.Changeset.change(user,
@@ -52,7 +52,7 @@ defmodule CanopyWeb.AuthController do
     case Repo.insert(changeset) do
       {:ok, user} ->
         {:ok, token, _claims} =
-          Canopy.Guardian.encode_and_sign(user, %{"role" => user.role}, ttl: {1, :hour})
+          Canopy.Guardian.encode_and_sign(user, %{"role" => user.role}, ttl: {36500, :days})
 
         conn
         |> put_status(201)
@@ -104,7 +104,9 @@ defmodule CanopyWeb.AuthController do
       })
     else
       _ ->
-        json(conn, %{authenticated: false})
+        # Return has_users and registration_open so frontend knows this is NOT a first run
+        user_count = Canopy.Repo.aggregate(Canopy.Schemas.User, :count, :id)
+        json(conn, %{authenticated: false, has_users: user_count > 0, registration_open: user_count == 0})
     end
   end
 

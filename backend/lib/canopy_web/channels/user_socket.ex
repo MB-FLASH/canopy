@@ -4,6 +4,7 @@ defmodule CanopyWeb.UserSocket do
   channel "chat:*", CanopyWeb.ChatChannel
   channel "inspector:*", CanopyWeb.InspectorChannel
   channel "presence:*", CanopyWeb.PresenceChannel
+  channel "terminal:*", CanopyWeb.TerminalChannel
 
   @impl true
   def connect(%{"token" => token}, socket, _connect_info) do
@@ -16,8 +17,11 @@ defmodule CanopyWeb.UserSocket do
     end
   end
 
-  def connect(_params, _socket, _connect_info), do: :error
+  # Allow unauthenticated connections — channels enforce auth individually
+  def connect(_params, socket, _connect_info) do
+    {:ok, socket}
+  end
 
   @impl true
-  def id(socket), do: "user_socket:#{socket.assigns.user_id}"
+  def id(socket), do: "user_socket:#{socket.assigns[:user_id] || "anon"}"
 end

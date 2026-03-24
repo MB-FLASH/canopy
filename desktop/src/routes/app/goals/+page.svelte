@@ -21,7 +21,8 @@
     if (activeProjectId) {
       void goalsStore.fetchGoals(activeProjectId);
     } else {
-      goalsStore.setActiveProject('');
+      // Fetch all goals when no project selected
+      void goalsStore.fetchGoals('');
     }
   });
 

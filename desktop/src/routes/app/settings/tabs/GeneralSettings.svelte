@@ -13,11 +13,12 @@
     try {
       localStorage.removeItem('canopy-workspaces');
       localStorage.removeItem('canopy-active-workspace');
-      localStorage.removeItem('canopy-onboarding');
-      localStorage.removeItem('canopy-onboarding-complete');
       localStorage.removeItem('canopy-offline-queue');
+      // Keep onboarding flags — user already completed onboarding, just logging out
+      // localStorage.removeItem('canopy-onboarding');
+      // localStorage.removeItem('canopy-onboarding-complete');
     } catch { /* non-fatal */ }
-    goto('/');
+    goto('/auth');
   }
 
   const ADAPTER_OPTIONS: { value: string; label: string }[] = [

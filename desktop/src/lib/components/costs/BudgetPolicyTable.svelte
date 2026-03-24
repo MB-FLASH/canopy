@@ -9,9 +9,10 @@
   }
 
   function policyScope(policy: BudgetPolicy): string {
-    if (policy.agent_ids.length === 0) return 'All agents';
-    if (policy.agent_ids.length === 1) return '1 agent';
-    return `${policy.agent_ids.length} agents`;
+    const ids = policy.agent_ids ?? [];
+    if (ids.length === 0) return 'All agents';
+    if (ids.length === 1) return '1 agent';
+    return `${ids.length} agents`;
   }
 
   // Determine policy status by looking at incidents

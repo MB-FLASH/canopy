@@ -87,12 +87,12 @@
   </div>
 
   <footer class="gc-footer">
-    {#if goal.children.length > 0}
-      <span class="gc-meta-item" aria-label="{goal.children.length} sub-goals">
+    {#if (goal.children ?? []).length > 0}
+      <span class="gc-meta-item" aria-label="{(goal.children ?? []).length} sub-goals">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <path d="M3 3h18M3 12h9M3 21h6" />
         </svg>
-        {goal.children.length} sub-goals
+        {(goal.children ?? []).length} sub-goals
       </span>
     {/if}
     {#if goal.issue_count > 0}

@@ -2727,7 +2727,7 @@ export function notifyMockDisabled(): void {
 // stay in sync with any new keys added to mock sub-modules.
 const MOCK_STORAGE_KEYS = [
   "canopy-workspace-agents", // mock/agents.ts — deployed template agents
-  "canopy-active-workspace", // mock/index.ts — fresh-workspace detection
+  // NOTE: do NOT clear canopy-active-workspace — real backend needs it to load agents
 ] as const;
 
 /**
@@ -2977,13 +2977,7 @@ export async function handleRequest<T>(
   // Strip query params for matching
   const cleanPath = path.split("?")[0];
 
-  // Fresh workspace override: return empty data for operational endpoints
-  if (isFreshWorkspace()) {
-    const override = FRESH_WORKSPACE_OVERRIDES[cleanPath];
-    if (override !== undefined) {
-      return override as T;
-    }
-  }
+  // Fresh workspace override disabled — real backend handles all data
 
   for (const route of routes) {
     if (route.pattern.test(cleanPath)) {

@@ -23,9 +23,20 @@
     user?: User | null;
   }
 
+  import { onMount } from 'svelte';
+  import { workspaceStore } from '$lib/stores/workspace.svelte';
+
   let { isCollapsed = $bindable(), onToggle, user = null }: Props = $props();
 
   let currentPath = $derived($page.url.pathname as string);
+
+  onMount(() => {
+    // Ensure agents are loaded — fetch if empty
+    if (agentsStore.agents.length === 0) {
+      const wsId = workspaceStore.activeWorkspaceId ?? undefined;
+      void agentsStore.fetchAgents(wsId);
+    }
+  });
 
   // Division display config (fallback grouping when no real teams exist)
   const DIVISION_META: Record<string, { emoji: string; label: string; order: number }> = {

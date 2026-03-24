@@ -32,7 +32,7 @@
         <span class="sig-stat-label">Total ({s.period_hours}h)</span>
       </div>
       <div class="sig-stat-card">
-        <span class="sig-stat-value">{s.avg_weight.toFixed(2)}</span>
+        <span class="sig-stat-value">{(s.avg_weight ?? 0).toFixed(2)}</span>
         <span class="sig-stat-label">Avg Weight</span>
       </div>
       <div class="sig-stat-card">
@@ -64,7 +64,7 @@
               <span class="sig-pattern-count">{pattern.count}</span>
             </div>
             <div class="sig-pattern-meta">
-              <span class="sig-pattern-weight">avg {pattern.avg_weight.toFixed(2)}</span>
+              <span class="sig-pattern-weight">avg {(pattern.avg_weight ?? 0).toFixed(2)}</span>
               {#if pattern.failure_rate > 0}
                 <span class="sig-pattern-fail">{Math.round(pattern.failure_rate * 100)}% fail</span>
               {/if}

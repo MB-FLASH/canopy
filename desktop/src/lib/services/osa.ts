@@ -22,7 +22,10 @@ export interface OsaHealth {
 
 /** Check if OSA is reachable on port 9090 or 9089, return health payload */
 export async function checkOsaHealth(): Promise<OsaHealth | null> {
-  // Try direct OSA health endpoint on both ports
+  // Skip localhost checks in browser context (not Tauri desktop app)
+  if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
+    return null;
+  }
   for (const port of [9090, 9089]) {
     for (const path of ["/health", "/api/v1/health"]) {
       try {
@@ -40,6 +43,10 @@ export async function checkOsaHealth(): Promise<OsaHealth | null> {
 
 /** Determine which port OSA is responding on */
 export async function findOsaPort(): Promise<number | null> {
+  // Skip localhost checks in browser context
+  if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
+    return null;
+  }
   for (const port of [9090, 9089]) {
     try {
       const res = await fetch(`http://127.0.0.1:${port}/health`, {
@@ -95,6 +102,10 @@ export async function installOsa(): Promise<{
 
 /** Check what OSA's onboarding has detected */
 export async function getOsaOnboardingStatus(): Promise<unknown | null> {
+  // Skip localhost checks in browser context (not Tauri desktop app)
+  if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
+    return null;
+  }
   for (const port of [9090, 9089]) {
     try {
       const res = await fetch(`http://127.0.0.1:${port}/onboarding/status`, {

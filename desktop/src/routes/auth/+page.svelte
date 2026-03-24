@@ -142,12 +142,11 @@
         resetInitPromise();
 
         localStorage.setItem('canopy-display-name', result.user.name);
+        // Mark onboarding complete on every login — real backend = already set up
+        localStorage.setItem('canopy-onboarding-complete', 'true');
+        localStorage.setItem('canopy-onboarding', JSON.stringify({ completed: true }));
 
-        // Returning user: honour their existing onboarding state instead of
-        // unconditionally marking onboarding complete.  If they haven't
-        // finished onboarding for some reason, send them there first.
-        const onboardingDone = isOnboardingComplete();
-        goto(onboardingDone ? '/app' : '/onboarding', { replaceState: true });
+        goto('/app', { replaceState: true });
       }
     } catch (err: unknown) {
       if (err instanceof Error) {

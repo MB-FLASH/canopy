@@ -33,13 +33,13 @@
 
 <div class="gh-level" role={depth === 0 ? 'tree' : 'group'} aria-label={depth === 0 ? 'Goals hierarchy' : undefined}>
   {#each nodes as node (node.id)}
-    <div class="gh-node" style="--depth: {Math.min(depth, MAX_VISUAL_DEPTH)}" role="treeitem" aria-expanded={node.children.length > 0 ? expanded[node.id] ?? true : undefined}>
+    <div class="gh-node" style="--depth: {Math.min(depth, MAX_VISUAL_DEPTH)}" role="treeitem" aria-expanded={(node.children ?? []).length > 0 ? expanded[node.id] ?? true : undefined}>
       {#if depth > 0}
         <div class="gh-connector" aria-hidden="true"></div>
       {/if}
 
       <div class="gh-item">
-        {#if node.children.length > 0}
+        {#if (node.children ?? []).length > 0}
           <button
             class="gh-toggle"
             onclick={() => toggle(node.id)}
@@ -73,13 +73,13 @@
         </div>
       </div>
 
-      {#if node.children.length > 0 && (expanded[node.id] ?? true) && depth < MAX_VISUAL_DEPTH}
+      {#if (node.children ?? []).length > 0 && (expanded[node.id] ?? true) && depth < MAX_VISUAL_DEPTH}
         <div class="gh-children">
-          <svelte:self nodes={node.children} depth={depth + 1} />
+          <svelte:self nodes={node.children ?? []} depth={depth + 1} />
         </div>
-      {:else if node.children.length > 0 && (expanded[node.id] ?? true) && depth >= MAX_VISUAL_DEPTH}
+      {:else if (node.children ?? []).length > 0 && (expanded[node.id] ?? true) && depth >= MAX_VISUAL_DEPTH}
         <div class="gh-max-depth" role="note" aria-label="Maximum nesting depth reached">
-          <span>{node.children.length} more sub-goals (max depth reached)</span>
+          <span>{(node.children ?? []).length} more sub-goals (max depth reached)</span>
         </div>
       {/if}
     </div>

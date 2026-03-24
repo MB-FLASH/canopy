@@ -1,67 +1,149 @@
 <!-- src/routes/app/terminal/+page.svelte -->
 <script lang="ts">
+  import { onMount, onDestroy } from 'svelte';
   import PageShell from '$lib/components/layout/PageShell.svelte';
+
+  let terminalEl: HTMLDivElement;
+  let terminal: import('@xterm/xterm').Terminal | null = null;
+  let socket: WebSocket | null = null;
+  let channel: any = null;
+  let connected = $state(false);
+  let error = $state('');
+
+  onMount(async () => {
+    // Import xterm CSS
+    await import('@xterm/xterm/css/xterm.css');
+
+    const { Terminal } = await import('@xterm/xterm');
+    const { FitAddon } = await import('@xterm/addon-fit');
+    const { WebLinksAddon } = await import('@xterm/addon-web-links');
+
+    terminal = new Terminal({
+      cursorBlink: true,
+      fontSize: 14,
+      fontFamily: "'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace",
+      theme: {
+        background: '#0d0d0d',
+        foreground: '#e2e8f0',
+        cursor: '#93c5fd',
+        selectionBackground: 'rgba(147, 197, 253, 0.2)',
+        black: '#1e293b',
+        red: '#f87171',
+        green: '#4ade80',
+        yellow: '#fbbf24',
+        blue: '#60a5fa',
+        magenta: '#c084fc',
+        cyan: '#22d3ee',
+        white: '#e2e8f0',
+        brightBlack: '#475569',
+        brightRed: '#fca5a5',
+        brightGreen: '#86efac',
+        brightYellow: '#fde68a',
+        brightBlue: '#93c5fd',
+        brightMagenta: '#d8b4fe',
+        brightCyan: '#67e8f9',
+        brightWhite: '#f8fafc',
+      },
+      scrollback: 5000,
+    });
+
+    const fitAddon = new FitAddon();
+    const webLinksAddon = new WebLinksAddon();
+    terminal.loadAddon(fitAddon);
+    terminal.loadAddon(webLinksAddon);
+    terminal.open(terminalEl);
+    fitAddon.fit();
+
+    // Resize observer
+    const observer = new ResizeObserver(() => fitAddon.fit());
+    observer.observe(terminalEl);
+
+    // Connect to Phoenix channel
+    const token = localStorage.getItem('canopy-auth-token');
+    if (!token) {
+      terminal.writeln('\r\n\x1b[31mError: Not authenticated. Please log in.\x1b[0m');
+      return;
+    }
+
+    const wsBase = 'wss://canopy.operiq.net';
+
+    try {
+      const { Socket } = await import('phoenix');
+      const phxSocket = new Socket(`${wsBase}/socket`, { params: { token } });
+      phxSocket.connect();
+
+      const ch = phxSocket.channel('terminal:shell', { token });
+
+      ch.on('output', ({ data }: { data: string }) => {
+        terminal?.write(data);
+      });
+
+      ch.join()
+        .receive('ok', () => {
+          connected = true;
+          error = '';
+          terminal?.writeln('\x1b[32mConnected to server shell\x1b[0m\r\n');
+          ch.push('start', {});
+        })
+        .receive('error', (resp: any) => {
+          error = resp?.reason || 'Connection failed';
+          terminal?.writeln(`\r\n\x1b[31mFailed to connect: ${error}\x1b[0m`);
+        });
+
+      terminal.onData((data) => {
+        ch.push('input', { data });
+      });
+
+      channel = ch;
+    } catch (e) {
+      error = String(e);
+      terminal?.writeln(`\r\n\x1b[31mError: ${error}\x1b[0m`);
+    }
+
+    return () => observer.disconnect();
+  });
+
+  onDestroy(() => {
+    channel?.leave();
+    terminal?.dispose();
+  });
 </script>
 
-<PageShell title="Terminal" subtitle="Embedded shell" noPadding={false}>
-  <div class="trm-placeholder" role="status">
-    <div class="trm-preview" aria-hidden="true">
-      <span class="trm-prompt">canopy@osa</span><span class="trm-path">:~$</span>
-      <span class="trm-cursor"></span>
-    </div>
-    <h2 class="trm-title">Terminal</h2>
-    <p class="trm-desc">
-      An embedded terminal for direct agent interaction, command execution,
-      and real-time log streaming from the OSA backend.
-    </p>
-    <div class="trm-notice">
-      <span class="trm-notice-label">Backend required</span>
-      Connect the Canopy backend to enable the terminal.
-    </div>
-    <ul class="trm-features" aria-label="Planned features">
-      <li>WebSocket-backed interactive shell</li>
-      <li>Agent-scoped command execution</li>
-      <li>Real-time log tail and filtering</li>
-      <li>Command history with search</li>
-    </ul>
+<PageShell title="Terminal" subtitle="Server shell" noPadding={true}>
+  <div class="trm-root">
+    {#if error}
+      <div class="trm-error">{error}</div>
+    {/if}
+    <div class="trm-container" bind:this={terminalEl}></div>
   </div>
 </PageShell>
 
 <style>
-  .trm-placeholder {
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; gap: 16px; min-height: 320px; text-align: center;
-    padding: 40px;
+  :global(body) { overflow: hidden; }
+  .trm-root {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 56px);
+    background: #0d0d0d;
   }
-  .trm-preview {
-    font-family: var(--font-mono); font-size: 14px; padding: 12px 20px;
-    background: rgba(0,0,0,0.4); border: 1px solid var(--dbd); border-radius: 8px;
-    display: flex; align-items: center; gap: 6px; opacity: 0.6;
+  .trm-error {
+    padding: 8px 16px;
+    background: rgba(239, 68, 68, 0.15);
+    border-bottom: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+    font-size: 12px;
+    flex-shrink: 0;
   }
-  .trm-prompt { color: rgba(255, 255, 255, 0.6); }
-  .trm-path { color: #93c5fd; }
-  .trm-cursor {
-    width: 8px; height: 14px; background: var(--dt);
-    animation: trm-blink 1.2s step-end infinite;
+  .trm-container {
+    flex: 1;
+    padding: 8px 12px;
+    min-height: 0;
   }
-  @keyframes trm-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-  .trm-title { font-size: 18px; font-weight: 600; color: var(--dt); margin: 0; }
-  .trm-desc { font-size: 13px; color: var(--dt3); max-width: 400px; margin: 0; line-height: 1.6; }
-  .trm-notice {
-    display: flex; align-items: center; gap: 8px;
-    padding: 10px 16px; border-radius: 8px; font-size: 12px;
-    background: rgba(245, 158, 11, 0.1);
-    border: 1px solid rgba(245, 158, 11, 0.25);
-    color: var(--dt2);
+  .trm-container :global(.xterm) {
+    height: 100%;
+    width: 100%;
   }
-  .trm-notice-label { font-weight: 600; color: #fbbf24; white-space: nowrap; }
-  .trm-features {
-    list-style: none; padding: 0; margin: 0;
-    display: flex; flex-direction: column; gap: 6px; align-items: center;
+  .trm-container :global(.xterm-screen) {
+    width: 100% !important;
   }
-  .trm-features li {
-    font-size: 12px; color: var(--dt4);
-    display: flex; align-items: center; gap: 6px;
-  }
-  .trm-features li::before { content: '—'; opacity: 0.4; }
 </style>

@@ -212,7 +212,7 @@
                 <div class="env-resource-fill env-resource-fill--cpu" style="width: {cpuBarWidth(r.cpu_percent)}"></div>
               </div>
             </div>
-            <span class="env-resource-value">{r.cpu_percent.toFixed(1)}%</span>
+            <span class="env-resource-value">{(r.cpu_percent ?? 0).toFixed(1)}%</span>
           </div>
 
           <div class="env-resource-stat">
@@ -222,12 +222,12 @@
                 <div class="env-resource-fill env-resource-fill--mem" style="width: {memBarWidth(r.memory_used_gb, r.memory_total_gb)}"></div>
               </div>
             </div>
-            <span class="env-resource-value">{r.memory_used_gb.toFixed(1)} / {r.memory_total_gb.toFixed(0)} GB</span>
+            <span class="env-resource-value">{(r.memory_used_gb ?? 0).toFixed(1)} / {(r.memory_total_gb ?? 0).toFixed(0)} GB</span>
           </div>
 
           <div class="env-resource-stat env-resource-stat--plain">
             <span class="env-resource-label">Disk Free</span>
-            <span class="env-resource-value">{r.disk_free_gb.toFixed(1)} / {r.disk_total_gb.toFixed(0)} GB</span>
+            <span class="env-resource-value">{(r.disk_free_gb ?? 0).toFixed(1)} / {(r.disk_total_gb ?? 0).toFixed(0)} GB</span>
           </div>
 
           <div class="env-resource-stat env-resource-stat--plain">

@@ -24,6 +24,13 @@ defmodule CanopyWeb.OrganizationController do
 
   def create(conn, params) do
     user_id = params["created_by"] || conn.assigns[:current_user_id]
+    # Auto-generate slug from name if not provided
+    params = if is_nil(params["slug"]) || params["slug"] == "" do
+      slug = params["name"] |> String.downcase() |> String.replace(~r/[^a-z0-9]+/, "-") |> String.trim("-")
+      Map.put(params, "slug", slug)
+    else
+      params
+    end
     changeset = Organization.changeset(%Organization{}, params)
 
     case Repo.insert(changeset) do

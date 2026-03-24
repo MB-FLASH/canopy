@@ -154,16 +154,10 @@ import Sidebar from '$lib/components/layout/Sidebar.svelte';
 
       // 9. Pre-fetch projects so goals and other project-dependent pages work
       void projectsStore.fetchProjects(wsId);
+      // Always fetch from API — filesystem scan only works in Tauri desktop app
+      void agentsStore.fetchAgents(wsId);
       if (ws) {
-        workspaceStore.scanAndLoadAgents(ws.path).then(() => {
-          workspaceStore.watchActive();
-          // If scan didn't load any agents (browser mode / empty scan), fall back to API
-          if (agentsStore.agents.length === 0) {
-            void agentsStore.fetchAgents(wsId);
-          }
-        });
-      } else {
-        void agentsStore.fetchAgents(wsId);
+        workspaceStore.watchActive();
       }
     });
 

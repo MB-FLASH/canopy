@@ -270,6 +270,16 @@ export function initializeAuth(): Promise<void> {
 }
 
 async function _doInitializeAuth(): Promise<void> {
+  // Fast-path: if a valid token is already set in memory and we're already in
+  // real mode (not mock), there's nothing to do.  This happens when the layout
+  // calls initializeAuth() after persistToken() set _token during login —
+  // re-running would call verifyToken() which is unnecessary and clears _token
+  // on any transient network error, causing 401s on every subsequent request.
+  if (_token && !useMock) {
+    resolveAuthGate();
+    return;
+  }
+
   // 0. Probe backend health — if it responds, disable mock mode
   try {
     const probe = await fetch(`${BASE_URL}${API_PREFIX}/health`, {
@@ -1096,11 +1106,21 @@ export const issues = {
 // ── Goals ─────────────────────────────────────────────────────────────────────
 
 export const goals = {
-  list: async (projectId: string): Promise<GoalTreeNode[]> => {
-    const data = await request<{ goals: GoalTreeNode[] }>(
-      `/projects/${projectId}/goals`,
-    );
-    return data.goals ?? [];
+  list: async (projectId?: string): Promise<GoalTreeNode[]> => {
+    const path = projectId ? `/projects/${projectId}/goals` : `/goals`;
+    const data = await request<{ goals: GoalTreeNode[] }>(path);
+    // Normalize: backend may not return progress/children — add safe defaults recursively
+    function normalizeGoal(g: GoalTreeNode): GoalTreeNode {
+      return {
+        ...g,
+        progress: g.progress ?? 0,
+        children: (g.children ?? []).map(normalizeGoal),
+        issue_count: g.issue_count ?? 0,
+        priority: g.priority ?? 'medium',
+        assignee_id: g.assignee_id ?? null,
+      };
+    }
+    return (data.goals ?? []).map(normalizeGoal);
   },
   get: (id: string) => request<{ goal: Goal }>(`/goals/${id}`),
   create: (projectId: string, body: Partial<Goal>) =>
@@ -1781,8 +1801,17 @@ export const teams = {
 // ── Hierarchy ─────────────────────────────────────────────────────────────────
 
 export const hierarchy = {
-  get: (organizationId: string) =>
-    request<HierarchyTree>(`/hierarchy?organization_id=${organizationId}`),
+  get: async (organizationId: string): Promise<HierarchyTree> => {
+    const data = await request<{ organization: HierarchyTree & { divisions: HierarchyTree['divisions'] } }>(
+      `/hierarchy?organization_id=${organizationId}`
+    );
+    // Backend nests divisions under organization — normalize to flat HierarchyTree
+    const org = data.organization ?? data as unknown as HierarchyTree;
+    return {
+      organization: org.organization ?? org,
+      divisions: org.divisions ?? [],
+    };
+  },
 };
 
 // ── Labels ────────────────────────────────────────────────────────────────────
