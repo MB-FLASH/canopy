@@ -29,4 +29,7 @@ defmodule Canopy.EventBus do
   def team_topic(team_id), do: "team:#{team_id}"
   def activity_topic, do: "activity:global"
   def logs_topic, do: "logs:global"
+  def notifications_topic(workspace_id), do: "notifications:#{workspace_id}"
+  def workflow_topic(workflow_id), do: "workflow:#{workflow_id}"
+  def workflow_run_topic(run_id), do: "workflow_run:#{run_id}"
 end

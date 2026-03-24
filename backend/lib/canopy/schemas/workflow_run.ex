@@ -34,6 +34,6 @@ defmodule Canopy.Schemas.WorkflowRun do
       :workflow_id
     ])
     |> validate_required([:workflow_id])
-    |> validate_inclusion(:status, ~w(pending running completed failed cancelled))
+    |> validate_inclusion(:status, ~w(pending running completed failed cancelled paused))
   end
 end

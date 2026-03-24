@@ -4,6 +4,7 @@ defmodule CanopyWeb.WorkflowController do
 
   alias Canopy.Repo
   alias Canopy.Schemas.{Workflow, WorkflowStep, WorkflowRun}
+  alias Canopy.Workflows.Engine
   import Ecto.Query
 
   def index(conn, params) do
@@ -132,33 +133,93 @@ defmodule CanopyWeb.WorkflowController do
   end
 
   def trigger(conn, %{"workflow_id" => workflow_id} = params) do
-    case Repo.get(Workflow, workflow_id) |> maybe_preload() do
+    case Engine.start_run(workflow_id, params) do
+      {:ok, run} ->
+        Logger.info("[WorkflowController] Run #{run.id} started for workflow #{workflow_id}")
+        conn |> put_status(201) |> json(%{run: serialize_run(run)})
+
+      {:error, :workflow_not_found} ->
+        conn |> put_status(404) |> json(%{error: "not_found"})
+
+      {:error, reason} ->
+        Logger.error("[WorkflowController] Failed to start run: #{inspect(reason)}")
+
+        conn
+        |> put_status(422)
+        |> json(%{error: "trigger_failed", details: inspect(reason)})
+    end
+  end
+
+  def pause(conn, %{"workflow_id" => _workflow_id, "run_id" => run_id}) do
+    case Engine.pause_run(run_id) do
+      {:ok, run} ->
+        json(conn, %{run: serialize_run(run)})
+
+      {:error, :not_found} ->
+        conn |> put_status(404) |> json(%{error: "not_found"})
+
+      {:error, {:invalid_transition, status}} ->
+        conn |> put_status(422) |> json(%{error: "invalid_state", current_status: status})
+    end
+  end
+
+  def resume(conn, %{"workflow_id" => _workflow_id, "run_id" => run_id} = params) do
+    resume_params = Map.get(params, "resume_params", %{})
+
+    case Engine.resume_run(run_id, resume_params) do
+      {:ok, run} ->
+        json(conn, %{run: serialize_run(run)})
+
+      {:error, :not_found} ->
+        conn |> put_status(404) |> json(%{error: "not_found"})
+
+      {:error, {:invalid_transition, status}} ->
+        conn |> put_status(422) |> json(%{error: "invalid_state", current_status: status})
+    end
+  end
+
+  def cancel(conn, %{"workflow_id" => _workflow_id, "run_id" => run_id}) do
+    case Engine.cancel_run(run_id) do
+      {:ok, run} ->
+        json(conn, %{run: serialize_run(run)})
+
+      {:error, :not_found} ->
+        conn |> put_status(404) |> json(%{error: "not_found"})
+
+      {:error, {:invalid_transition, status}} ->
+        conn |> put_status(422) |> json(%{error: "invalid_state", current_status: status})
+    end
+  end
+
+  def step_status(conn, %{"workflow_id" => _workflow_id, "run_id" => run_id}) do
+    case Repo.get(WorkflowRun, run_id) do
       nil ->
         conn |> put_status(404) |> json(%{error: "not_found"})
 
-      workflow ->
-        now = DateTime.utc_now()
+      run ->
+        steps =
+          Repo.all(
+            from s in WorkflowStep,
+              where: s.workflow_id == ^run.workflow_id,
+              order_by: [asc: s.position]
+          )
 
-        run_attrs = %{
-          workflow_id: workflow.id,
-          status: "pending",
-          trigger_event: params["trigger_event"] || "manual",
-          input: params["input"] || %{},
-          started_at: now
-        }
+        step_statuses =
+          Enum.map(steps, fn step ->
+            result = Map.get(run.step_results, step.id, %{})
+            status = Map.get(result, "status", "pending")
 
-        changeset = WorkflowRun.changeset(%WorkflowRun{}, run_attrs)
+            %{
+              step_id: step.id,
+              step_name: step.name,
+              step_type: step.step_type,
+              position: step.position,
+              status: status,
+              result: result
+            }
+          end)
 
-        case Repo.insert(changeset) do
-          {:ok, run} ->
-            Logger.info("Workflow run started: #{run.id} for workflow #{workflow.id}")
-            conn |> put_status(201) |> json(%{run: serialize_run(run)})
-
-          {:error, changeset} ->
-            conn
-            |> put_status(422)
-            |> json(%{error: "validation_failed", details: format_errors(changeset)})
-        end
+        json(conn, %{run_id: run_id, status: run.status, steps: step_statuses})
     end
   end
 

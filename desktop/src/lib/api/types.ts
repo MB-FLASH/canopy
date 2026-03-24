@@ -1392,3 +1392,81 @@ export interface SendConversationMessageResponse {
   user_message: ConversationMessage;
   agent_message: ConversationMessage;
 }
+
+// ── Datasets ──────────────────────────────────────────────────────────────────
+
+export type DatasetSourceType =
+  | "upload"
+  | "api"
+  | "database"
+  | "agent_generated"
+  | "stream";
+
+export type DatasetFormat = "csv" | "json" | "parquet" | "sql" | "api";
+
+export type DatasetStatus = "active" | "processing" | "stale" | "archived";
+
+export interface DatasetColumn {
+  name: string;
+  type:
+    | "string"
+    | "integer"
+    | "float"
+    | "boolean"
+    | "timestamp"
+    | "date"
+    | "object"
+    | "array";
+  nullable: boolean;
+  description?: string;
+}
+
+export interface DatasetSchemaDefinition {
+  columns: DatasetColumn[];
+}
+
+export interface Dataset {
+  id: string;
+  workspace_id: string | null;
+  created_by_agent_id: string | null;
+  name: string;
+  slug: string;
+  description: string | null;
+  source_type: DatasetSourceType;
+  format: DatasetFormat;
+  schema_definition: DatasetSchemaDefinition | null;
+  row_count: number;
+  size_bytes: number;
+  status: DatasetStatus;
+  refresh_schedule: string | null;
+  last_refreshed_at: string | null;
+  tags: string[];
+  access_agents: string[];
+  inserted_at: string;
+  updated_at: string;
+}
+
+export interface DatasetCreateRequest {
+  name: string;
+  slug: string;
+  description?: string;
+  source_type: DatasetSourceType;
+  format: DatasetFormat;
+  schema_definition?: DatasetSchemaDefinition;
+  row_count?: number;
+  size_bytes?: number;
+  status?: DatasetStatus;
+  refresh_schedule?: string;
+  tags?: string[];
+  workspace_id?: string;
+}
+
+export interface DatasetPreviewRow {
+  [column: string]: string | number | boolean | null;
+}
+
+export interface DatasetPreviewResponse {
+  rows: DatasetPreviewRow[];
+  total: number;
+  preview_limit: number;
+}

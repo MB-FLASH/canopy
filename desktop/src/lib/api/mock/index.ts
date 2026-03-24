@@ -112,6 +112,14 @@ import {
   deleteMockConversation,
   mockSendMessage,
 } from "./conversations";
+import {
+  mockDatasets,
+  mockDatasetById,
+  addMockDataset,
+  updateMockDataset,
+  deleteMockDataset,
+  mockDatasetPreview,
+} from "./datasets";
 import type {
   CanopyAgent,
   Schedule,
@@ -130,6 +138,7 @@ import type {
   Workflow,
   WorkflowStep,
   WorkflowRun,
+  Dataset,
 } from "../types";
 
 // Simulated network delay (kept minimal for responsiveness)
@@ -1834,15 +1843,185 @@ const routes: Array<{ pattern: RegExp; handler: RouteHandler }> = [
     },
   },
 
+  // ── Hierarchy / Org Structure ──────────────────────────────────────────────────
+  {
+    pattern: /^\/divisions\/([^/]+)\/departments$/,
+    handler: () => ({ departments: [] }),
+  },
+  {
+    pattern: /^\/divisions\/([^/]+)$/,
+    handler: (path) => {
+      const id = path.split("/")[2];
+      return { id, name: "Division", slug: "division", departments: [] };
+    },
+  },
+  {
+    pattern: /^\/departments\/([^/]+)\/teams$/,
+    handler: () => ({ teams: [] }),
+  },
+  {
+    pattern: /^\/departments\/([^/]+)$/,
+    handler: (path) => {
+      const id = path.split("/")[2];
+      return { id, name: "Department", slug: "department", teams: [] };
+    },
+  },
+  {
+    pattern: /^\/teams\/([^/]+)\/(agents|members)$/,
+    handler: () => ({ agents: [], members: [] }),
+  },
+  {
+    pattern: /^\/teams\/([^/]+)$/,
+    handler: (path) => {
+      const id = path.split("/")[2];
+      return { id, name: "Team", slug: "team", agents: [] };
+    },
+  },
+  // ── Skills sub-routes ──────────────────────────────────────────────────────────
+  {
+    pattern: /^\/skills\/categories$/,
+    handler: () => ({
+      categories: [
+        "automation",
+        "analysis",
+        "communication",
+        "development",
+        "research",
+      ],
+    }),
+  },
+  {
+    pattern: /^\/skills\/(bulk-enable|bulk-disable|import)$/,
+    handler: () => ({ ok: true }),
+  },
+  {
+    pattern: /^\/skills\/([^/]+)\/(toggle|inject)$/,
+    handler: () => ({ ok: true }),
+  },
+  {
+    pattern: /^\/skills\/([^/]+)$/,
+    handler: (path) => {
+      const id = path.split("/")[2];
+      return { id, name: "Skill", enabled: true };
+    },
+  },
+  // ── Webhooks sub-routes ────────────────────────────────────────────────────────
+  {
+    pattern: /^\/webhooks\/([^/]+)\/test$/,
+    handler: () => ({ success: true, status_code: 200, response_time_ms: 150 }),
+  },
+  {
+    pattern: /^\/webhooks\/([^/]+)\/deliveries$/,
+    handler: () => ({ deliveries: [] }),
+  },
+  // ── Budgets sub-routes ─────────────────────────────────────────────────────────
+  {
+    pattern:
+      /^\/budgets\/(agent|team|department|division|organization|workspace)\/([^/]+)$/,
+    handler: () => ({ ok: true }),
+  },
+  {
+    pattern: /^\/budgets\/incidents\/([^/]+)\/resolve$/,
+    handler: () => ({ ok: true }),
+  },
+  // ── Projects sub-routes ────────────────────────────────────────────────────────
+  {
+    pattern: /^\/projects\/([^/]+)\/workspaces$/,
+    handler: () => ({ workspaces: [] }),
+  },
+  // ── Workspaces sub-routes ──────────────────────────────────────────────────────
+  {
+    pattern: /^\/workspaces\/([^/]+)\/(agents|skills|config)$/,
+    handler: (path) => {
+      const sub = path.split("/")[3];
+      if (sub === "agents") return { agents: [] };
+      if (sub === "skills") return { skills: [] };
+      return { config: {} };
+    },
+  },
+  {
+    pattern: /^\/workspaces\/([^/]+)$/,
+    handler: (path) => {
+      const id = path.split("/")[2];
+      return { id, name: "Workspace", path: "/workspace", agents: [] };
+    },
+  },
+  // ── Integrations sub-routes ────────────────────────────────────────────────────
+  {
+    pattern: /^\/integrations\/([^/]+)\/(connect|disconnect|status)$/,
+    handler: (path) => {
+      const action = path.split("/")[3];
+      if (action === "status") return { connected: false, last_sync: null };
+      return { ok: true };
+    },
+  },
+  {
+    pattern: /^\/integrations\/pull-all$/,
+    handler: () => ({ ok: true, synced: 0 }),
+  },
+  // ── Schedules sub-routes ───────────────────────────────────────────────────────
+  {
+    pattern: /^\/schedules\/(wake-all|pause-all)$/,
+    handler: () => ({ ok: true }),
+  },
+  // ── Alerts sub-routes ──────────────────────────────────────────────────────────
+  {
+    pattern: /^\/alerts\/evaluate$/,
+    handler: () => ({ ok: true, triggered: 0 }),
+  },
+  // ── Invitations ────────────────────────────────────────────────────────────────
+  {
+    pattern: /^\/invitations\/([^/]+)\/accept$/,
+    handler: () => ({ ok: true }),
+  },
+  // ── Config Revisions ───────────────────────────────────────────────────────────
+  {
+    pattern: /^\/config\/revisions\/([^/]+)\/restore$/,
+    handler: () => ({ ok: true }),
+  },
+  // ── Datasets sub-routes ────────────────────────────────────────────────────────
+  {
+    pattern: /^\/datasets\/([^/]+)\/(preview|refresh|grant|revoke)$/,
+    handler: (path) => {
+      const action = path.split("/")[3];
+      if (action === "preview") return { rows: [], columns: [] };
+      return { ok: true };
+    },
+  },
+  {
+    pattern: /^\/datasets\/([^/]+)$/,
+    handler: (path) => {
+      const id = path.split("/")[2];
+      return {
+        id,
+        name: "Dataset",
+        source_type: "upload",
+        format: "csv",
+        row_count: 0,
+        size_bytes: 0,
+        status: "active",
+      };
+    },
+  },
+  // ── Notifications sub-routes ───────────────────────────────────────────────────
+  {
+    pattern: /^\/notifications\/mark-all-read$/,
+    handler: () => ({ ok: true }),
+  },
+  {
+    pattern: /^\/notifications\/([^/]+)\/(read|dismiss)$/,
+    handler: () => ({ ok: true }),
+  },
+
   // ── Sidebar Badges ─────────────────────────────────────────────────────────────
   {
     pattern: /^\/sidebar-badges$/,
     handler: () => ({
-      inbox: 3,
-      issues: 2,
-      approvals: 1,
-      sessions: 0,
-      agents: 0,
+      inbox_unread: 3,
+      approvals_pending: 1,
+      issues_open: 2,
+      agents_error: 0,
+      budget_warnings: 0,
     }),
   },
 
@@ -1896,6 +2075,158 @@ const routes: Array<{ pattern: RegExp; handler: RouteHandler }> = [
         stream_id: `stream-${Date.now()}`,
         session_id: sessionId,
       };
+    },
+  },
+
+  // ── Datasets — sub-routes before collection ────────────────────────────────────
+  {
+    // POST /datasets/:id/refresh
+    pattern: /^\/datasets\/([^/]+)\/refresh$/,
+    handler: (path) => {
+      const id = path.split("/")[2];
+      const updated = updateMockDataset(id, {
+        status: "processing",
+        last_refreshed_at: new Date().toISOString(),
+      });
+      return updated
+        ? { dataset: updated, message: "Refresh triggered" }
+        : { error: "not_found" };
+    },
+  },
+  {
+    // POST /datasets/:id/grant
+    pattern: /^\/datasets\/([^/]+)\/grant$/,
+    handler: (path, options) => {
+      const id = path.split("/")[2];
+      let agentId = "";
+      try {
+        const body = JSON.parse(
+          typeof options.body === "string"
+            ? options.body
+            : JSON.stringify(options.body ?? {}),
+        ) as { agent_id?: string };
+        agentId = body.agent_id ?? "";
+      } catch {
+        /* ignore */
+      }
+      const ds = mockDatasetById(id);
+      if (!ds) return { error: "not_found" };
+      const existing = ds.access_agents ?? [];
+      const updated = updateMockDataset(id, {
+        access_agents: existing.includes(agentId)
+          ? existing
+          : [agentId, ...existing],
+      });
+      return { dataset: updated };
+    },
+  },
+  {
+    // POST /datasets/:id/revoke
+    pattern: /^\/datasets\/([^/]+)\/revoke$/,
+    handler: (path, options) => {
+      const id = path.split("/")[2];
+      let agentId = "";
+      try {
+        const body = JSON.parse(
+          typeof options.body === "string"
+            ? options.body
+            : JSON.stringify(options.body ?? {}),
+        ) as { agent_id?: string };
+        agentId = body.agent_id ?? "";
+      } catch {
+        /* ignore */
+      }
+      const ds = mockDatasetById(id);
+      if (!ds) return { error: "not_found" };
+      const updated = updateMockDataset(id, {
+        access_agents: (ds.access_agents ?? []).filter((a) => a !== agentId),
+      });
+      return { dataset: updated };
+    },
+  },
+  {
+    // GET /datasets/:id/preview
+    pattern: /^\/datasets\/([^/]+)\/preview$/,
+    handler: (path) => {
+      const id = path.split("/")[2];
+      const ds = mockDatasetById(id);
+      if (!ds) return { error: "not_found" };
+      const rows = mockDatasetPreview(id, 50);
+      return { rows, total: ds.row_count, preview_limit: 50 };
+    },
+  },
+  {
+    // GET/PATCH/DELETE /datasets/:id
+    pattern: /^\/datasets\/([^/]+)$/,
+    handler: (path, options) => {
+      const id = path.split("/")[2];
+      const method = (options.method ?? "GET").toUpperCase();
+      if (method === "DELETE") {
+        deleteMockDataset(id);
+        return { ok: true };
+      }
+      if (method === "PATCH" && options.body) {
+        try {
+          const body = JSON.parse(
+            typeof options.body === "string"
+              ? options.body
+              : JSON.stringify(options.body),
+          ) as Partial<Dataset>;
+          return { dataset: updateMockDataset(id, body) };
+        } catch {
+          return { dataset: mockDatasetById(id) };
+        }
+      }
+      const ds = mockDatasetById(id);
+      return ds ? { dataset: ds } : { error: "not_found" };
+    },
+  },
+  {
+    // GET /datasets  |  POST /datasets
+    pattern: /^\/datasets$/,
+    handler: (_path, options, rawPath) => {
+      const qs = (rawPath ?? "").split("?")[1] ?? "";
+      const params = new URLSearchParams(qs);
+      const wsId = params.get("workspace_id") ?? undefined;
+      const sourceType = params.get("source_type") ?? undefined;
+      const method = (options.method ?? "GET").toUpperCase();
+
+      if (method === "POST" && options.body) {
+        try {
+          const body = JSON.parse(
+            typeof options.body === "string"
+              ? options.body
+              : JSON.stringify(options.body ?? {}),
+          ) as Partial<Dataset>;
+          const newDs: Dataset = {
+            id: `ds-new-${Date.now()}`,
+            workspace_id: body.workspace_id ?? wsId ?? null,
+            created_by_agent_id: null,
+            name: body.name ?? "Untitled Dataset",
+            slug: body.slug ?? `dataset-${Date.now()}`,
+            description: body.description ?? null,
+            source_type: body.source_type ?? "upload",
+            format: body.format ?? "csv",
+            schema_definition: body.schema_definition ?? null,
+            row_count: body.row_count ?? 0,
+            size_bytes: body.size_bytes ?? 0,
+            status: body.status ?? "active",
+            refresh_schedule: body.refresh_schedule ?? null,
+            last_refreshed_at: null,
+            tags: body.tags ?? [],
+            access_agents: body.access_agents ?? [],
+            inserted_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+          addMockDataset(newDs);
+          return { dataset: newDs };
+        } catch {
+          return { error: "invalid_body" };
+        }
+      }
+
+      const datasets = mockDatasets(wsId, sourceType);
+      return { datasets, count: datasets.length };
     },
   },
 ];
@@ -2023,11 +2354,11 @@ const FRESH_WORKSPACE_OVERRIDES: Record<string, unknown> = {
   "/budgets": { policies: [] },
   "/budgets/incidents": { incidents: [] },
   "/sidebar-badges": {
-    inbox: 0,
-    issues: 0,
-    approvals: 0,
-    sessions: 0,
-    agents: 0,
+    inbox_unread: 0,
+    approvals_pending: 0,
+    issues_open: 0,
+    agents_error: 0,
+    budget_warnings: 0,
   },
   "/goals": { goals: [], count: 0 },
   "/goals/tree": { tree: [] },
@@ -2067,6 +2398,101 @@ const FRESH_WORKSPACE_OVERRIDES: Record<string, unknown> = {
   "/analytics/teams": { teams: [] },
   "/work-products": { products: [], count: 0 },
   "/conversations": { conversations: [], total: 0 },
+  "/hierarchy": {
+    organization: {
+      id: "org-1",
+      name: "Default Organization",
+      divisions: [],
+    },
+  },
+  "/divisions": { divisions: [] },
+  "/departments": { departments: [] },
+  "/teams": { teams: [] },
+  "/invitations": { invitations: [] },
+  "/config/revisions": { revisions: [] },
+  "/execution-workspaces": { workspaces: [] },
+  "/costs/events": { events: [], total: 0 },
+  "/document-revisions": { revisions: [] },
+  "/spawn/history": { runs: [] },
+  "/schedules/queue": { queue: [] },
+  "/alerts/history": { events: [] },
+  "/adapters": [
+    {
+      id: "osa",
+      name: "OSA",
+      description: "Optimal System Agent",
+      status: "available",
+    },
+    {
+      id: "claude_code",
+      name: "Claude Code",
+      description: "Anthropic Claude Code CLI",
+      status: "available",
+    },
+    {
+      id: "claude-code",
+      name: "Claude Code (Hyphenated)",
+      description: "Alias for claude_code",
+      status: "available",
+    },
+    {
+      id: "codex",
+      name: "Codex",
+      description: "OpenAI Codex agent",
+      status: "available",
+    },
+    {
+      id: "openclaw",
+      name: "OpenClaw",
+      description: "OpenClaw agent framework",
+      status: "available",
+    },
+    {
+      id: "jidoclaw",
+      name: "JidoClaw",
+      description: "JidoClaw agent framework",
+      status: "available",
+    },
+    {
+      id: "hermes",
+      name: "Hermes",
+      description: "Hermes messaging agent",
+      status: "available",
+    },
+    {
+      id: "bash",
+      name: "Bash",
+      description: "Shell script agent",
+      status: "available",
+    },
+    {
+      id: "http",
+      name: "HTTP",
+      description: "HTTP API agent",
+      status: "available",
+    },
+    {
+      id: "cursor",
+      name: "Cursor",
+      description: "Cursor IDE agent",
+      status: "available",
+    },
+    {
+      id: "gemini",
+      name: "Gemini",
+      description: "Google Gemini agent",
+      status: "available",
+    },
+    {
+      id: "custom",
+      name: "Custom",
+      description: "Custom adapter",
+      status: "available",
+    },
+  ],
+  "/notifications": { notifications: [], total: 0 },
+  "/notifications/badges": { unread: 0, by_category: {}, by_severity: {} },
+  "/datasets": { datasets: [], total: 0 },
 };
 
 // ── Request handler ────────────────────────────────────────────────────────────

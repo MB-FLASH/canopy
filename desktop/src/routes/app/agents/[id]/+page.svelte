@@ -40,7 +40,7 @@
     { id: 'code_execution', label: 'Code Execution',  description: 'Run code in sandbox' },
   ] as const;
 
-  const ADAPTER_OPTIONS: AdapterType[] = ['osa', 'claude_code', 'codex', 'openclaw', 'bash', 'http', 'cursor', 'gemini', 'custom'];
+  const ADAPTER_OPTIONS: AdapterType[] = ['osa', 'claude_code', 'claude-code', 'codex', 'openclaw', 'jidoclaw', 'hermes', 'bash', 'http', 'cursor', 'gemini', 'custom'];
 
   // Local editable copies for the access tab (not persisted until "Save" — for now just visual)
   let localAdapter = $state<AdapterType>('osa');

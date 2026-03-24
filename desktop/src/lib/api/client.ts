@@ -2001,6 +2001,86 @@ export const conversations = {
     request<void>(`/conversations/${id}`, { method: "DELETE" }),
 };
 
+// ── Datasets ──────────────────────────────────────────────────────────────────
+
+export const datasets = {
+  list: async (
+    workspaceId?: string,
+    sourceType?: string,
+  ): Promise<import("./types").Dataset[]> => {
+    const params = new URLSearchParams();
+    if (workspaceId) params.set("workspace_id", workspaceId);
+    if (sourceType) params.set("source_type", sourceType);
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    const data = await request<{
+      datasets: import("./types").Dataset[];
+      count: number;
+    }>(`/datasets${qs}`);
+    return data.datasets ?? [];
+  },
+  get: async (id: string): Promise<import("./types").Dataset> => {
+    const data = await request<{ dataset: import("./types").Dataset }>(
+      `/datasets/${id}`,
+    );
+    return data.dataset;
+  },
+  create: async (
+    body: import("./types").DatasetCreateRequest,
+  ): Promise<import("./types").Dataset> => {
+    const data = await request<{ dataset: import("./types").Dataset }>(
+      "/datasets",
+      { method: "POST", body: JSON.stringify(body) },
+    );
+    return data.dataset;
+  },
+  update: async (
+    id: string,
+    body: Partial<import("./types").DatasetCreateRequest>,
+  ): Promise<import("./types").Dataset> => {
+    const data = await request<{ dataset: import("./types").Dataset }>(
+      `/datasets/${id}`,
+      { method: "PATCH", body: JSON.stringify(body) },
+    );
+    return data.dataset;
+  },
+  remove: (id: string) =>
+    request<void>(`/datasets/${id}`, { method: "DELETE" }),
+  preview: async (
+    id: string,
+  ): Promise<import("./types").DatasetPreviewResponse> => {
+    return request<import("./types").DatasetPreviewResponse>(
+      `/datasets/${id}/preview`,
+    );
+  },
+  refresh: async (id: string): Promise<import("./types").Dataset> => {
+    const data = await request<{ dataset: import("./types").Dataset }>(
+      `/datasets/${id}/refresh`,
+      { method: "POST" },
+    );
+    return data.dataset;
+  },
+  grantAccess: async (
+    id: string,
+    agentId: string,
+  ): Promise<import("./types").Dataset> => {
+    const data = await request<{ dataset: import("./types").Dataset }>(
+      `/datasets/${id}/grant`,
+      { method: "POST", body: JSON.stringify({ agent_id: agentId }) },
+    );
+    return data.dataset;
+  },
+  revokeAccess: async (
+    id: string,
+    agentId: string,
+  ): Promise<import("./types").Dataset> => {
+    const data = await request<{ dataset: import("./types").Dataset }>(
+      `/datasets/${id}/revoke`,
+      { method: "POST", body: JSON.stringify({ agent_id: agentId }) },
+    );
+    return data.dataset;
+  },
+};
+
 // ── Enable/Disable Mock ──────────────────────────────────────────────────────
 // These are async because disabling mock purges localStorage and notifies the
 // mock module, both of which are best-effort async operations.

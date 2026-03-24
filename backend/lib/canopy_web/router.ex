@@ -70,6 +70,12 @@ defmodule CanopyWeb.Router do
       delete "/steps/:step_id", WorkflowController, :remove_step, as: :remove_step
       get "/runs", WorkflowController, :runs, as: :runs
       post "/trigger", WorkflowController, :trigger, as: :trigger
+
+      # Run lifecycle
+      post "/runs/:run_id/pause", WorkflowController, :pause, as: :pause_run
+      post "/runs/:run_id/resume", WorkflowController, :resume, as: :resume_run
+      post "/runs/:run_id/cancel", WorkflowController, :cancel, as: :cancel_run
+      get "/runs/:run_id/steps", WorkflowController, :step_status, as: :step_status
     end
 
     # Schedules
@@ -127,11 +133,19 @@ defmodule CanopyWeb.Router do
     delete "/documents/*path", DocumentController, :delete
     post "/documents", DocumentController, :create
 
-    # Inbox
+    # Inbox (legacy — activity-event based)
     get "/inbox", InboxController, :index
     post "/inbox/read-all", InboxController, :read_all
     post "/inbox/:id/read", InboxController, :read
     post "/inbox/:id/action", InboxController, :perform_action
+
+    # Notifications
+    get "/notifications/badges", NotificationController, :badges
+    post "/notifications/mark-all-read", NotificationController, :mark_all_read
+    resources "/notifications", NotificationController, only: [:index, :show, :create] do
+      post "/read", NotificationController, :mark_read, as: :read
+      post "/dismiss", NotificationController, :dismiss, as: :dismiss
+    end
 
     # Activity + Logs
     get "/activity", ActivityController, :index
@@ -289,6 +303,14 @@ defmodule CanopyWeb.Router do
     # Plugins
     resources "/plugins", PluginController, except: [:new, :edit] do
       get "/logs", PluginController, :logs, as: :logs
+    end
+
+    # Datasets
+    resources "/datasets", DatasetController, except: [:new, :edit] do
+      get "/preview", DatasetController, :preview, as: :preview
+      post "/refresh", DatasetController, :refresh, as: :refresh
+      post "/grant", DatasetController, :grant_access, as: :grant
+      post "/revoke", DatasetController, :revoke_access, as: :revoke
     end
   end
 
