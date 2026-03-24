@@ -79,8 +79,21 @@ class AnalyticsStore {
     this.isLoading = true;
     this.error = null;
     try {
-      const raw = await analyticsApi.summary(period);
-      this.data = raw as AnalyticsData;
+      const [summaryRaw, agentRaw, teamRaw] = await Promise.all([
+        analyticsApi.summary(period),
+        analyticsApi.agents(period),
+        analyticsApi.teams(period),
+      ]);
+      const summary = summaryRaw as any;
+      const agentMetrics = ((agentRaw as any).agents ?? []) as AgentMetrics[];
+      const teamMetrics = ((teamRaw as any).teams ?? []) as TeamMetrics[];
+      this.data = {
+        period,
+        totals: summary.totals,
+        trends: summary.trends,
+        agent_metrics: agentMetrics,
+        team_metrics: teamMetrics,
+      };
     } catch (e) {
       this.error = (e as Error).message;
     } finally {

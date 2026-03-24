@@ -20,7 +20,7 @@ class GoalsStore {
   // Derived: flat list from tree
   flatGoals = $derived.by(() => {
     const flatten = (nodes: GoalTreeNode[]): GoalTreeNode[] =>
-      nodes.flatMap((n) => [n, ...flatten(n.children)]);
+      nodes.flatMap((n) => [n, ...flatten(n.children ?? [])]);
     return flatten(this.goals);
   });
 
@@ -66,7 +66,7 @@ class GoalsStore {
       // the GoalDetail backdrop rendered and blocking the page.
       if (this.selected) {
         const flat = (nodes: GoalTreeNode[]): GoalTreeNode[] =>
-          nodes.flatMap((n) => [n, ...flat(n.children)]);
+          nodes.flatMap((n) => [n, ...flat(n.children ?? [])]);
         const refreshed = flat(this.goals).find(
           (g) => g.id === this.selected!.id,
         );
@@ -121,8 +121,8 @@ class GoalsStore {
     const applyUpdate = (nodes: GoalTreeNode[]): GoalTreeNode[] =>
       nodes.map((n) =>
         n.id === id
-          ? { ...n, ...data, children: applyUpdate(n.children) }
-          : { ...n, children: applyUpdate(n.children) },
+          ? { ...n, ...data, children: applyUpdate(n.children ?? []) }
+          : { ...n, children: applyUpdate(n.children ?? []) },
       );
     const previousGoals = this.goals;
     this.goals = applyUpdate(this.goals);
@@ -143,7 +143,7 @@ class GoalsStore {
       this.goals = previousGoals;
       if (this.selected?.id === id) {
         const prev = previousGoals
-          .flatMap((n) => [n, ...n.children])
+          .flatMap((n) => [n, ...(n.children ?? [])])
           .find((g) => g.id === id);
         this.selected = prev ?? this.selected;
       }
@@ -191,7 +191,7 @@ class GoalsStore {
     const removeFromTree = (nodes: GoalTreeNode[]): GoalTreeNode[] =>
       nodes
         .filter((n) => n.id !== id)
-        .map((n) => ({ ...n, children: removeFromTree(n.children) }));
+        .map((n) => ({ ...n, children: removeFromTree(n.children ?? []) }));
     const previousGoals = this.goals;
     const previousSelected = this.selected;
     this.goals = removeFromTree(this.goals);
