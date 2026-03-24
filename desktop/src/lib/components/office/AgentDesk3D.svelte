@@ -51,7 +51,7 @@
 
   <!-- Desk legs -->
   {#each [[-0.8, 0.22, -0.35], [0.8, 0.22, -0.35], [-0.8, 0.22, 0.35], [0.8, 0.22, 0.35]] as leg}
-    <T.Mesh position={leg}>
+    <T.Mesh position={leg as [number, number, number]}>
       <T.CylinderGeometry args={[0.03, 0.03, 0.44, 6]} />
       <T.MeshStandardMaterial color="#1e1e35" />
     </T.Mesh>
