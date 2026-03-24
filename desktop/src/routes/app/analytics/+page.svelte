@@ -78,7 +78,7 @@
     <div class="an-kpi-row" aria-label="Key performance indicators">
       <div class="an-kpi-card">
         <span class="an-kpi-label">Total Sessions</span>
-        <span class="an-kpi-value">{totals.total_sessions.toLocaleString()}</span>
+        <span class="an-kpi-value">{(totals.total_sessions ?? 0).toLocaleString()}</span>
       </div>
       <div class="an-kpi-card">
         <span class="an-kpi-label">Success Rate</span>
@@ -92,7 +92,7 @@
       </div>
       <div class="an-kpi-card">
         <span class="an-kpi-label">Tasks Completed</span>
-        <span class="an-kpi-value">{totals.total_tasks.toLocaleString()}</span>
+        <span class="an-kpi-value">{(totals.total_tasks ?? 0).toLocaleString()}</span>
       </div>
       <div class="an-kpi-card">
         <span class="an-kpi-label">Active Agents</span>
@@ -190,7 +190,7 @@
                     <span class="an-agent-dot" aria-hidden="true"></span>
                     {agent.agent_name}
                   </td>
-                  <td class="an-td an-td--num">{agent.total_sessions.toLocaleString()}</td>
+                  <td class="an-td an-td--num">{(agent.total_sessions ?? 0).toLocaleString()}</td>
                   <td class="an-td an-td--num">
                     <span class="an-rate {successRateClass(agent.success_rate)}">
                       {(agent.success_rate * 100).toFixed(1)}%
@@ -223,7 +223,7 @@
               <div class="an-team-stats">
                 <div class="an-team-stat">
                   <span class="an-team-stat-label">Sessions</span>
-                  <span class="an-team-stat-value">{team.total_sessions.toLocaleString()}</span>
+                  <span class="an-team-stat-value">{(team.total_sessions ?? 0).toLocaleString()}</span>
                 </div>
                 <div class="an-team-stat">
                   <span class="an-team-stat-label">Success</span>
