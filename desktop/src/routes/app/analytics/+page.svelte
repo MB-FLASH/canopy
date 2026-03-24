@@ -16,7 +16,7 @@
   });
 
   function setPeriod(p: Period) {
-    void analyticsStore.fetchAnalytics(p);
+    analyticsStore.period = p;
   }
 
   function formatCents(cents: number): string {

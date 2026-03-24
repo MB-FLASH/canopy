@@ -78,6 +78,7 @@ class AnalyticsStore {
     this.period = period;
     this.isLoading = true;
     this.error = null;
+    this.data = null;
     try {
       const [summaryRaw, agentRaw, teamRaw] = await Promise.all([
         analyticsApi.summary(period),
@@ -85,7 +86,19 @@ class AnalyticsStore {
         analyticsApi.teams(period),
       ]);
       const summary = summaryRaw as any;
-      const agentMetrics = ((agentRaw as any).agents ?? []) as AgentMetrics[];
+      // Normalize agent fields: real backend returns {id, name}, mock returns {agent_id, agent_name}
+      const agentMetrics: AgentMetrics[] = ((agentRaw as any).agents ?? []).map((a: any) => ({
+        agent_id: a.agent_id ?? a.id,
+        agent_name: a.agent_name ?? a.name,
+        total_sessions: a.total_sessions ?? 0,
+        successful_sessions: a.successful_sessions ?? 0,
+        failed_sessions: a.failed_sessions ?? 0,
+        success_rate: a.success_rate ?? 0,
+        avg_duration_seconds: a.avg_duration_seconds ?? 0,
+        total_cost_cents: a.total_cost_cents ?? 0,
+        tasks_completed: a.tasks_completed ?? 0,
+        tasks_per_day: a.tasks_per_day ?? 0,
+      }));
       const teamMetrics = ((teamRaw as any).teams ?? []) as TeamMetrics[];
       this.data = {
         period,
