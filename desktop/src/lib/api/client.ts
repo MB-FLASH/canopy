@@ -1938,6 +1938,69 @@ export const workProducts = {
     request<void>(`/work-products/${id}/archive`, { method: "POST" }),
 };
 
+// ── Conversations ─────────────────────────────────────────────────────────────
+
+export const conversations = {
+  list: async (filters?: {
+    agent_id?: string;
+    status?: string;
+  }): Promise<import("./types").Conversation[]> => {
+    const qs = filters
+      ? "?" + new URLSearchParams(filters as Record<string, string>).toString()
+      : "";
+    const data = await request<{
+      conversations: import("./types").Conversation[];
+      total: number;
+    }>(`/conversations${qs}`);
+    return data.conversations ?? [];
+  },
+  get: (id: string) =>
+    request<{
+      conversation: import("./types").Conversation;
+      messages: import("./types").ConversationMessage[];
+    }>(`/conversations/${id}`),
+  create: (agentId: string, title?: string, workspaceId?: string) =>
+    request<{ conversation: import("./types").Conversation }>(
+      "/conversations",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          agent_id: agentId,
+          title,
+          workspace_id: workspaceId,
+        }),
+      },
+    ),
+  messages: async (
+    id: string,
+    params?: { limit?: number; before?: string },
+  ): Promise<import("./types").ConversationMessage[]> => {
+    const qs = params
+      ? "?" + new URLSearchParams(params as Record<string, string>).toString()
+      : "";
+    const data = await request<{
+      messages: import("./types").ConversationMessage[];
+      count: number;
+    }>(`/conversations/${id}/messages${qs}`);
+    return data.messages ?? [];
+  },
+  sendMessage: (id: string, content: string) =>
+    request<import("./types").SendConversationMessageResponse>(
+      `/conversations/${id}/messages`,
+      {
+        method: "POST",
+        body: JSON.stringify({ content }),
+      },
+    ),
+  archive: (id: string) =>
+    request<{ conversation: import("./types").Conversation }>(
+      `/conversations/${id}/archive`,
+      { method: "POST" },
+    ),
+  delete: (id: string) =>
+    request<void>(`/conversations/${id}`, { method: "DELETE" }),
+};
+
 // ── Enable/Disable Mock ──────────────────────────────────────────────────────
 // These are async because disabling mock purges localStorage and notifies the
 // mock module, both of which are best-effort async operations.

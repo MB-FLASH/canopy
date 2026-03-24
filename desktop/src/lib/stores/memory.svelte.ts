@@ -9,14 +9,132 @@ import { toastStore } from "./toasts.svelte";
 
 const PAGE_SIZE = 20;
 
+// ── Knowledge entry shape (superset of MemoryEntry) ──────────────────────────
+export type KnowledgeCategory =
+  | "fact"
+  | "procedure"
+  | "preference"
+  | "observation"
+  | "decision"
+  | "context";
+
+export interface KnowledgeEntry extends MemoryEntry {
+  agent_id: string;
+  agent_name: string;
+  category: KnowledgeCategory;
+  confidence: number;
+  source: string;
+  related_entries: string[];
+  tags: string[];
+  // metadata fields promoted for convenience
+  created_at: string;
+  updated_at: string;
+  access_count: number;
+}
+
+// ── Category metadata ─────────────────────────────────────────────────────────
+export const CATEGORY_META: Record<
+  KnowledgeCategory,
+  { label: string; color: string; bg: string; border: string }
+> = {
+  fact: {
+    label: "Fact",
+    color: "#60a5fa",
+    bg: "rgba(96,165,250,0.12)",
+    border: "rgba(96,165,250,0.25)",
+  },
+  procedure: {
+    label: "Procedure",
+    color: "#34d399",
+    bg: "rgba(52,211,153,0.12)",
+    border: "rgba(52,211,153,0.25)",
+  },
+  preference: {
+    label: "Preference",
+    color: "#a78bfa",
+    bg: "rgba(167,139,250,0.12)",
+    border: "rgba(167,139,250,0.25)",
+  },
+  observation: {
+    label: "Observation",
+    color: "#f59e0b",
+    bg: "rgba(245,158,11,0.12)",
+    border: "rgba(245,158,11,0.25)",
+  },
+  decision: {
+    label: "Decision",
+    color: "#f472b6",
+    bg: "rgba(244,114,182,0.12)",
+    border: "rgba(244,114,182,0.25)",
+  },
+  context: {
+    label: "Context",
+    color: "#94a3b8",
+    bg: "rgba(148,163,184,0.12)",
+    border: "rgba(148,163,184,0.25)",
+  },
+};
+
+// ── Normalize raw API entry into KnowledgeEntry ───────────────────────────────
+function toKnowledgeEntry(raw: MemoryEntry): KnowledgeEntry {
+  const r = raw as unknown as Record<string, unknown>;
+  const meta = raw.metadata ?? {};
+
+  // category: prefer explicit field, fall back to namespace-based inference
+  const categoryRaw = (r["category"] as string) ?? raw.namespace ?? "fact";
+  const knownCategories: KnowledgeCategory[] = [
+    "fact",
+    "procedure",
+    "preference",
+    "observation",
+    "decision",
+    "context",
+  ];
+  const category: KnowledgeCategory = knownCategories.includes(
+    categoryRaw as KnowledgeCategory,
+  )
+    ? (categoryRaw as KnowledgeCategory)
+    : "fact";
+
+  return {
+    ...raw,
+    agent_id: (r["agent_id"] as string) ?? meta.agent_id ?? "unknown",
+    agent_name: (r["agent_name"] as string) ?? meta.agent ?? "Unknown Agent",
+    category,
+    confidence:
+      typeof r["confidence"] === "number" ? (r["confidence"] as number) : 0.8,
+    source: (r["source"] as string) ?? "unknown",
+    related_entries: Array.isArray(r["related_entries"])
+      ? (r["related_entries"] as string[])
+      : [],
+    tags: Array.isArray(r["tags"]) ? (r["tags"] as string[]) : [],
+    created_at:
+      (r["created_at"] as string) ??
+      meta.created_at ??
+      new Date().toISOString(),
+    updated_at:
+      (r["updated_at"] as string) ??
+      meta.updated_at ??
+      new Date().toISOString(),
+    access_count:
+      typeof r["access_count"] === "number"
+        ? (r["access_count"] as number)
+        : (meta.access_count ?? 0),
+  };
+}
+
 class MemoryStore {
   // ── Raw data ────────────────────────────────────────────────────────────────
   entries = $state<MemoryEntry[]>([]);
   namespaces = $state<MemoryNamespace[]>([]);
 
   // ── Selection / navigation ──────────────────────────────────────────────────
-  selected = $state<MemoryEntry | null>(null);
+  selected = $state<KnowledgeEntry | null>(null);
   activeNamespace = $state<string>("all");
+
+  // ── View state ───────────────────────────────────────────────────────────────
+  viewMode = $state<"list" | "graph">("list");
+  activeCategory = $state<KnowledgeCategory | "all">("all");
 
   // ── Search ──────────────────────────────────────────────────────────────────
   searchQuery = $state("");
@@ -30,12 +148,18 @@ class MemoryStore {
   page = $state(1);
   pageSize = $state(PAGE_SIZE);
 
-  // ── Derived ──────────────────────────────────────────────────────────────────
+  // ── Knowledge derived ────────────────────────────────────────────────────────
+  knowledgeEntries = $derived(this.entries.map(toKnowledgeEntry));
+
   filteredEntries = $derived.by(() => {
-    let result = this.entries;
+    let result = this.knowledgeEntries;
 
     if (this.activeNamespace !== "all") {
       result = result.filter((e) => e.namespace === this.activeNamespace);
+    }
+
+    if (this.activeCategory !== "all") {
+      result = result.filter((e) => e.category === this.activeCategory);
     }
 
     if (this.searchQuery.trim()) {
@@ -45,7 +169,9 @@ class MemoryStore {
           e.key.toLowerCase().includes(q) ||
           e.value.toLowerCase().includes(q) ||
           e.namespace.toLowerCase().includes(q) ||
-          (e.metadata?.agent ?? "").toLowerCase().includes(q),
+          e.agent_name.toLowerCase().includes(q) ||
+          e.category.toLowerCase().includes(q) ||
+          e.tags.some((t) => t.toLowerCase().includes(q)),
       );
     }
 
@@ -62,9 +188,40 @@ class MemoryStore {
   totalPages = $derived(
     Math.max(1, Math.ceil(this.totalCount / this.pageSize)),
   );
-
   hasNextPage = $derived(this.page < this.totalPages);
   hasPrevPage = $derived(this.page > 1);
+
+  // By category counts (over ALL entries, not just filtered)
+  byCategory = $derived.by(() => {
+    const counts = new Map<KnowledgeCategory, number>();
+    for (const e of this.knowledgeEntries) {
+      counts.set(e.category, (counts.get(e.category) ?? 0) + 1);
+    }
+    return counts;
+  });
+
+  // By agent (name → count)
+  byAgent = $derived.by(() => {
+    const counts = new Map<string, number>();
+    for (const e of this.knowledgeEntries) {
+      counts.set(e.agent_name, (counts.get(e.agent_name) ?? 0) + 1);
+    }
+    return counts;
+  });
+
+  // Average confidence across all entries
+  avgConfidence = $derived.by(() => {
+    if (this.knowledgeEntries.length === 0) return 0;
+    const sum = this.knowledgeEntries.reduce((acc, e) => acc + e.confidence, 0);
+    return sum / this.knowledgeEntries.length;
+  });
+
+  // 5 most recently updated entries
+  recentEntries = $derived(
+    [...this.knowledgeEntries]
+      .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+      .slice(0, 5),
+  );
 
   namespaceSummary = $derived.by(() => {
     const counts = new Map<string, number>();
@@ -74,7 +231,7 @@ class MemoryStore {
     return counts;
   });
 
-  // Backend may return `content` instead of `value` and `category` instead of `namespace`.
+  // ── Normalize legacy entries ──────────────────────────────────────────────────
   #normalizeEntries(entries: MemoryEntry[]): MemoryEntry[] {
     return entries.map((e) => {
       const raw = e as unknown as Record<string, unknown>;
@@ -87,7 +244,6 @@ class MemoryStore {
   }
 
   // ── Fetch ─────────────────────────────────────────────────────────────────────
-
   async fetch(): Promise<void> {
     this.loading = true;
     try {
@@ -100,7 +256,7 @@ class MemoryStore {
       this.error = null;
       if (this.selected) {
         const refreshed = this.entries.find((e) => e.id === this.selected!.id);
-        this.selected = refreshed ?? null;
+        this.selected = refreshed ? toKnowledgeEntry(refreshed) : null;
       }
     } catch (e) {
       const msg = (e as Error).message;
@@ -111,13 +267,17 @@ class MemoryStore {
     }
   }
 
-  async search(q: string): Promise<void> {
+  // ── Knowledge-specific methods ────────────────────────────────────────────────
+  async fetchKnowledge(): Promise<void> {
+    return this.fetch();
+  }
+
+  async searchKnowledge(q: string): Promise<void> {
     this.searchQuery = q;
     this.page = 1;
 
     if (!q.trim()) {
       this.isSearching = false;
-      // Reload full list when query is cleared
       await this.fetch();
       return;
     }
@@ -134,6 +294,23 @@ class MemoryStore {
     } finally {
       this.isSearching = false;
     }
+  }
+
+  async deleteEntry(id: string): Promise<void> {
+    return this.delete(id);
+  }
+
+  getRelated(id: string): KnowledgeEntry[] {
+    const entry = this.knowledgeEntries.find((e) => e.id === id);
+    if (!entry) return [];
+    return entry.related_entries
+      .map((relId) => this.knowledgeEntries.find((e) => e.id === relId))
+      .filter((e): e is KnowledgeEntry => e !== undefined);
+  }
+
+  // ── Legacy search (used by older code paths) ──────────────────────────────────
+  async search(q: string): Promise<void> {
+    return this.searchKnowledge(q);
   }
 
   async getByNamespace(ns: string): Promise<void> {
@@ -191,7 +368,7 @@ class MemoryStore {
   ): Promise<MemoryEntry | null> {
     const previous = this.entries;
     const prevSelected = this.selected;
-    // Optimistic
+    // Optimistic update
     this.entries = this.entries.map((e) =>
       e.id === id
         ? {
@@ -207,13 +384,13 @@ class MemoryStore {
     );
     if (this.selected?.id === id) {
       const updated = this.entries.find((e) => e.id === id);
-      if (updated) this.selected = updated;
+      if (updated) this.selected = toKnowledgeEntry(updated);
     }
 
     try {
       const updated = await memoryApi.update(id, patch);
       this.entries = this.entries.map((e) => (e.id === id ? updated : e));
-      if (this.selected?.id === id) this.selected = updated;
+      if (this.selected?.id === id) this.selected = toKnowledgeEntry(updated);
       this.error = null;
       toastStore.success("Entry updated");
       return updated;
@@ -261,9 +438,8 @@ class MemoryStore {
   }
 
   // ── Navigation ───────────────────────────────────────────────────────────────
-
-  selectEntry(entry: MemoryEntry | null): void {
-    this.selected = entry;
+  selectEntry(entry: KnowledgeEntry | MemoryEntry | null): void {
+    this.selected = entry ? toKnowledgeEntry(entry) : null;
   }
 
   setActiveNamespace(ns: string): void {
@@ -271,6 +447,15 @@ class MemoryStore {
     this.page = 1;
     this.selected = null;
     if (this.searchQuery) this.searchQuery = "";
+  }
+
+  setActiveCategory(cat: KnowledgeCategory | "all"): void {
+    this.activeCategory = cat;
+    this.page = 1;
+  }
+
+  setViewMode(mode: "list" | "graph"): void {
+    this.viewMode = mode;
   }
 
   setSearch(q: string): void {
@@ -291,12 +476,13 @@ class MemoryStore {
     this.namespaces = [];
     this.selected = null;
     this.activeNamespace = "all";
+    this.activeCategory = "all";
     this.searchQuery = "";
     this.page = 1;
     this.error = null;
   }
 
-  // Legacy compat (filterAgentId / fetchEntries used by older code)
+  // Legacy compat
   filterAgentId = $state<string | null>(null);
 
   async fetchEntries(agentId?: string): Promise<void> {

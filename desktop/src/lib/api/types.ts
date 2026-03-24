@@ -201,7 +201,7 @@ export interface CanopyAgent {
   system_prompt: string;
   config: Record<string, unknown>;
   skills: string[];
-  team_id: string | null;
+  team_id?: string | null;
   schedule_id: string | null;
   budget_policy_id: string | null;
   current_task: string | null;
@@ -1336,4 +1336,59 @@ export interface DocumentRevision {
   changed_by: string;
   change_summary: string | null;
   created_at: string;
+}
+
+// ── Conversations ─────────────────────────────────────────────────────────────
+
+export type ConversationStatus = "active" | "archived" | "closed";
+
+export interface Conversation {
+  id: string;
+  title: string | null;
+  agent_id: string;
+  agent_name: string | null;
+  agent_avatar: string | null;
+  workspace_id: string | null;
+  user_id: string | null;
+  status: ConversationStatus;
+  last_message_at: string | null;
+  message_count: number;
+  metadata: Record<string, unknown>;
+  inserted_at: string;
+  updated_at: string;
+}
+
+export type ConversationMessageRole = "user" | "agent" | "system";
+export type ConversationMessageContentType =
+  | "text"
+  | "markdown"
+  | "code"
+  | "image"
+  | "tool_result";
+
+export interface ConversationMessage {
+  id: string;
+  conversation_id: string;
+  role: ConversationMessageRole;
+  content: string;
+  content_type: ConversationMessageContentType;
+  metadata: Record<string, unknown>;
+  token_count: number | null;
+  cost_cents: number | null;
+  inserted_at: string;
+}
+
+export interface ConversationCreateRequest {
+  agent_id: string;
+  title?: string;
+  workspace_id?: string;
+}
+
+export interface SendConversationMessageRequest {
+  content: string;
+}
+
+export interface SendConversationMessageResponse {
+  user_message: ConversationMessage;
+  agent_message: ConversationMessage;
 }

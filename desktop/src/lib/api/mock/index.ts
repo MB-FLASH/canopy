@@ -103,6 +103,15 @@ import { mockAudit } from "./audit";
 import { mockLogs } from "./logs";
 import { mockAnalytics } from "./analytics";
 import { mockWorkProducts } from "./work-products";
+import {
+  getMockConversations,
+  getMockConversationById,
+  getMockConversationMessages,
+  addMockConversation,
+  archiveMockConversation,
+  deleteMockConversation,
+  mockSendMessage,
+} from "./conversations";
 import type {
   CanopyAgent,
   Schedule,
@@ -990,6 +999,97 @@ const routes: Array<{ pattern: RegExp; handler: RouteHandler }> = [
       products: mockWorkProducts(),
       count: mockWorkProducts().length,
     }),
+  },
+
+  // ── Conversations ─────────────────────────────────────────────────────────────
+  {
+    // POST /conversations/:id/archive
+    pattern: /^\/conversations\/([^/]+)\/archive$/,
+    handler: (path) => {
+      const id = path.split("/")[2];
+      const conv = archiveMockConversation(id);
+      return conv ? { conversation: conv } : { error: "not_found" };
+    },
+  },
+  {
+    // GET /conversations/:id/messages  |  POST /conversations/:id/messages
+    pattern: /^\/conversations\/([^/]+)\/messages$/,
+    handler: (path, options, rawPath) => {
+      const id = path.split("/")[2];
+      const method = (options.method ?? "GET").toUpperCase();
+      if (method === "POST") {
+        let body: Record<string, unknown> = {};
+        try {
+          body = JSON.parse(options.body as string);
+        } catch {
+          /* ignore */
+        }
+        const content = (body.content as string) ?? "";
+        return mockSendMessage(id, content);
+      }
+      const params = new URLSearchParams((rawPath ?? "").split("?")[1] ?? "");
+      const limit = Math.min(parseInt(params.get("limit") ?? "50", 10), 200);
+      const msgs = getMockConversationMessages(id).slice(-limit);
+      return { messages: msgs, count: msgs.length };
+    },
+  },
+  {
+    // GET/DELETE /conversations/:id
+    pattern: /^\/conversations\/([^/]+)$/,
+    handler: (path, options) => {
+      const id = path.split("/")[2];
+      const method = (options.method ?? "GET").toUpperCase();
+      if (method === "DELETE") {
+        deleteMockConversation(id);
+        return undefined;
+      }
+      const conv = getMockConversationById(id);
+      if (!conv) return { error: "not_found" };
+      return {
+        conversation: conv,
+        messages: getMockConversationMessages(id).slice(-50),
+      };
+    },
+  },
+  {
+    // GET /conversations  |  POST /conversations
+    pattern: /^\/conversations$/,
+    handler: (_path, options, rawPath) => {
+      const method = (options.method ?? "GET").toUpperCase();
+      if (method === "POST") {
+        let body: Record<string, unknown> = {};
+        try {
+          body = JSON.parse(options.body as string);
+        } catch {
+          /* ignore */
+        }
+        const now = new Date().toISOString();
+        const newConv = {
+          id: `conv-new-${Date.now()}`,
+          title: (body.title as string) ?? null,
+          agent_id: (body.agent_id as string) ?? "agent-1",
+          agent_name: "Agent",
+          agent_avatar: "🤖",
+          workspace_id: (body.workspace_id as string) ?? null,
+          user_id: null,
+          status: "active" as const,
+          last_message_at: null,
+          message_count: 0,
+          metadata: {},
+          inserted_at: now,
+          updated_at: now,
+        };
+        addMockConversation(newConv);
+        return { conversation: newConv };
+      }
+      const params = new URLSearchParams((rawPath ?? "").split("?")[1] ?? "");
+      const filters = {
+        agent_id: params.get("agent_id") ?? undefined,
+        status: params.get("status") ?? undefined,
+      };
+      const convs = getMockConversations(filters);
+      return { conversations: convs, total: convs.length };
+    },
   },
 
   // ── Activity ──────────────────────────────────────────────────────────────────
@@ -1966,6 +2066,7 @@ const FRESH_WORKSPACE_OVERRIDES: Record<string, unknown> = {
   "/analytics/agents": { agents: [] },
   "/analytics/teams": { teams: [] },
   "/work-products": { products: [], count: 0 },
+  "/conversations": { conversations: [], total: 0 },
 };
 
 // ── Request handler ────────────────────────────────────────────────────────────

@@ -276,6 +276,13 @@ defmodule CanopyWeb.Router do
     post "/access/assign", AccessController, :assign
     delete "/access/:id", AccessController, :revoke
 
+    # Conversations
+    resources "/conversations", ConversationController, except: [:new, :edit, :update] do
+      get "/messages", ConversationController, :messages, as: :messages
+      post "/messages", ConversationController, :send_message, as: :send_message
+      post "/archive", ConversationController, :archive, as: :archive
+    end
+
     # Execution Workspaces
     resources "/execution-workspaces", ExecutionWorkspaceController, only: [:index, :create, :delete]
 
