@@ -45,3 +45,4 @@ backend/erl_crash.dump
 templates/growth-os/
 .claude/worktrees/
 erl_crash.dump
+desktop/build_old/
