@@ -6,102 +6,29 @@ defmodule CanopyWeb.EnvironmentController do
   import Ecto.Query
 
   # GET /api/v1/environment/apps
-  # Returns detected apps running on the host machine, merged with real DB access grants
+  # Returns apps with their DB access grants. System app detection requires a Tauri bridge.
   def apps(conn, _params) do
-    # System app detection still requires a Tauri bridge; we keep static detection
-    # but merge real agent_access data from the DB.
-    detected_apps = [
-      %{
-        id: "app-vscode",
-        name: "VS Code",
-        process_name: "code",
-        status: "running",
-        port: nil,
-        pid: 12345,
-        category: "development"
-      },
-      %{
-        id: "app-chrome",
-        name: "Chrome",
-        process_name: "chrome",
-        status: "running",
-        port: nil,
-        pid: 12346,
-        category: "browser"
-      },
-      %{
-        id: "app-postgres",
-        name: "PostgreSQL",
-        process_name: "postgres",
-        status: "running",
-        port: 5432,
-        pid: 12347,
-        category: "database"
-      },
-      %{
-        id: "app-docker",
-        name: "Docker Desktop",
-        process_name: "docker",
-        status: "running",
-        port: 2375,
-        pid: 12348,
-        category: "development"
-      },
-      %{
-        id: "app-n8n",
-        name: "N8N",
-        process_name: "n8n",
-        status: "running",
-        port: 5678,
-        pid: 12349,
-        category: "automation"
-      },
-      %{
-        id: "app-figma",
-        name: "Figma",
-        process_name: "figma",
-        status: "running",
-        port: nil,
-        pid: 12350,
-        category: "design"
-      },
-      %{
-        id: "app-slack",
-        name: "Slack",
-        process_name: "slack",
-        status: "running",
-        port: nil,
-        pid: 12351,
-        category: "communication"
-      },
-      %{
-        id: "app-terminal",
-        name: "Terminal",
-        process_name: "zsh",
-        status: "running",
-        port: nil,
-        pid: 12352,
-        category: "development"
-      }
-    ]
-
-    # Index all grants from DB keyed by app_identifier
     permissions =
       AppPermission
       |> select([p], {p.app_identifier, p.agent_id})
       |> Repo.all()
       |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
 
+    # Return apps that have at least one access grant recorded in the DB
     apps =
-      Enum.map(detected_apps, fn app ->
-        Map.put(app, :agent_access, Map.get(permissions, app.id, []))
+      permissions
+      |> Enum.map(fn {app_id, agent_ids} ->
+        %{
+          id: app_id,
+          agent_access: agent_ids
+        }
       end)
 
     json(conn, %{data: apps})
   end
 
   # GET /api/v1/environment/agent-apps
-  # Returns apps that agents have created — real DB records, mock fallback when empty
+  # Returns apps that agents have created — real DB records only
   def agent_apps(conn, _params) do
     db_apps =
       AgentApp
@@ -110,74 +37,38 @@ defmodule CanopyWeb.EnvironmentController do
       |> Repo.all()
 
     data =
-      if Enum.empty?(db_apps) do
-        # Fallback mock until agents start creating real apps
-        [
-          %{
-            id: "aapp-1",
-            name: "ContentOS",
-            agent_id: "agent-1",
-            agent_name: "Content Strategist",
-            template_source: "content-os",
-            status: "running",
-            port: 3000,
-            directory: "/tmp/canopy/apps/content-os",
-            created_at: DateTime.utc_now() |> DateTime.to_iso8601()
-          },
-          %{
-            id: "aapp-2",
-            name: "Data Pipeline v2",
-            agent_id: "agent-2",
-            agent_name: "Data Engineer",
-            template_source: nil,
-            status: "running",
-            port: 8080,
-            directory: "/tmp/canopy/apps/data-pipeline",
-            created_at: DateTime.utc_now() |> DateTime.to_iso8601()
-          },
-          %{
-            id: "aapp-3",
-            name: "Analytics Dashboard",
-            agent_id: "agent-3",
-            agent_name: "Analyst",
-            template_source: nil,
-            status: "building",
-            port: nil,
-            directory: "/tmp/canopy/apps/analytics",
-            created_at: DateTime.utc_now() |> DateTime.to_iso8601()
-          }
-        ]
-      else
-        Enum.map(db_apps, fn app ->
-          %{
-            id: app.id,
-            name: app.name,
-            agent_id: app.agent_id,
-            agent_name: app.agent && app.agent.name,
-            template_source: app.template_source,
-            status: app.status,
-            port: app.port,
-            directory: app.directory,
-            resource_usage: app.resource_usage,
-            created_at:
-              app.inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_iso8601()
-          }
-        end)
-      end
+      Enum.map(db_apps, fn app ->
+        %{
+          id: app.id,
+          name: app.name,
+          agent_id: app.agent_id,
+          agent_name: app.agent && app.agent.name,
+          template_source: app.template_source,
+          status: app.status,
+          port: app.port,
+          directory: app.directory,
+          resource_usage: app.resource_usage,
+          created_at:
+            app.inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_iso8601()
+        }
+      end)
 
     json(conn, %{data: data})
   end
 
   # GET /api/v1/environment/resources
-  # Returns system resource utilization (requires OS-level monitor, static for now)
+  # Returns system resource utilization. Memory from BEAM runtime; OS-level metrics require a bridge.
   def resources(conn, _params) do
+    memory_info = :erlang.memory()
+    memory_used_gb = Float.round(memory_info[:total] / 1_073_741_824, 3)
+
     resources = %{
-      cpu_percent: 34.2,
-      memory_used_gb: 12.4,
-      memory_total_gb: 32.0,
-      disk_free_gb: 234.5,
-      disk_total_gb: 500.0,
-      network_connections: 4
+      cpu_percent: 0,
+      memory_used_gb: memory_used_gb,
+      memory_total_gb: 0,
+      disk_free_gb: 0,
+      disk_total_gb: 0,
+      network_connections: 0
     }
 
     json(conn, %{data: resources})

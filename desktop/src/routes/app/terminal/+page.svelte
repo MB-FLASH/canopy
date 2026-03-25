@@ -65,7 +65,7 @@
       return;
     }
 
-    const wsBase = 'wss://canopy.operiq.net';
+    const wsBase = import.meta.env.VITE_API_URL?.replace('https://', 'wss://').replace('http://', 'ws://') ?? 'wss://main.operiq.net';
 
     try {
       const { Socket } = await import('phoenix');

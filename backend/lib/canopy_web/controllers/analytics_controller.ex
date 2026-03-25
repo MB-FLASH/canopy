@@ -3,44 +3,80 @@ defmodule CanopyWeb.AnalyticsController do
   import Ecto.Query
 
   alias Canopy.Repo
-  alias Canopy.Schemas.Agent
-  alias Canopy.Schemas.Session
-
-  @team_names ["Engineering", "Research", "Operations", "Product", "Security"]
+  alias Canopy.Schemas.{Agent, Session, Team, TeamMembership, CostEvent}
 
   # GET /analytics/summary?period=30d
   def summary(conn, params) do
     days = parse_period(params["period"])
-    :rand.seed(:exsss, {days, 42, 7})
+    cutoff_naive = NaiveDateTime.add(NaiveDateTime.utc_now(), -days * 86400, :second)
+    cutoff_dt = DateTime.add(DateTime.utc_now(), -days * 86400, :second)
 
-    total_sessions = rand_int(120, 600)
-    total_cost_cents = rand_int(5_000, 80_000)
-    avg_success_rate = Float.round((85 + :rand.uniform(14)) / 100.0, 4)
-    total_tasks = rand_int(200, 1200)
-    active_agents = rand_int(3, 10)
+    total_sessions =
+      Repo.aggregate(from(s in Session, where: s.inserted_at >= ^cutoff_naive), :count)
+
+    total_cost_cents =
+      Repo.one(
+        from ce in CostEvent,
+          where: ce.inserted_at >= ^cutoff_dt,
+          select: coalesce(sum(ce.cost_cents), 0)
+      ) || 0
+
+    completed_sessions =
+      Repo.aggregate(
+        from(s in Session,
+          where: s.inserted_at >= ^cutoff_naive and s.status == "completed"
+        ),
+        :count
+      )
+
+    avg_success_rate =
+      if total_sessions > 0,
+        do: Float.round(completed_sessions / total_sessions, 4),
+        else: 0.0
+
+    active_agents =
+      Repo.one(
+        from s in Session,
+          where: s.inserted_at >= ^cutoff_naive,
+          select: count(s.agent_id, :distinct)
+      ) || 0
 
     sessions_by_day =
-      for i <- 1..days do
-        date = Date.add(Date.utc_today(), -(days - i))
-        %{date: Date.to_iso8601(date), count: rand_int(1, max(1, div(total_sessions, days) * 2))}
-      end
+      Repo.all(
+        from s in Session,
+          where: s.inserted_at >= ^cutoff_naive,
+          group_by: fragment("date_trunc('day', ?)", s.inserted_at),
+          order_by: [asc: fragment("date_trunc('day', ?)", s.inserted_at)],
+          select: %{
+            day: fragment("date_trunc('day', ?)", s.inserted_at),
+            count: count(s.id)
+          }
+      )
+      |> Enum.map(fn row ->
+        %{date: row.day |> NaiveDateTime.to_date() |> Date.to_iso8601(), count: row.count}
+      end)
 
     costs_by_day =
-      for i <- 1..days do
-        date = Date.add(Date.utc_today(), -(days - i))
-
-        %{
-          date: Date.to_iso8601(date),
-          cents: rand_int(0, max(1, div(total_cost_cents, days) * 2))
-        }
-      end
+      Repo.all(
+        from ce in CostEvent,
+          where: ce.inserted_at >= ^cutoff_dt,
+          group_by: fragment("date_trunc('day', ?)", ce.inserted_at),
+          order_by: [asc: fragment("date_trunc('day', ?)", ce.inserted_at)],
+          select: %{
+            day: fragment("date_trunc('day', ?)", ce.inserted_at),
+            cents: coalesce(sum(ce.cost_cents), 0)
+          }
+      )
+      |> Enum.map(fn row ->
+        %{date: row.day |> DateTime.to_date() |> Date.to_iso8601(), cents: row.cents}
+      end)
 
     json(conn, %{
       totals: %{
         total_sessions: total_sessions,
         total_cost_cents: total_cost_cents,
         avg_success_rate: avg_success_rate,
-        total_tasks: total_tasks,
+        total_tasks: total_sessions,
         active_agents: active_agents
       },
       trends: %{
@@ -102,29 +138,52 @@ defmodule CanopyWeb.AnalyticsController do
   # GET /analytics/teams?period=30d
   def teams(conn, params) do
     days = parse_period(params["period"])
-    :rand.seed(:exsss, {days, 17, 55})
+    cutoff = NaiveDateTime.add(NaiveDateTime.utc_now(), -days * 86400, :second)
 
-    teams =
-      @team_names
-      |> Enum.with_index()
-      |> Enum.map(fn {name, idx} ->
-        agent_count = rand_int(1, 5)
-        sessions = rand_int(20, 200)
-        cost_cents = rand_int(1_000, 30_000)
-        success_rate = Float.round((80 + :rand.uniform(19)) / 100.0, 4)
+    teams = Repo.all(from t in Team, select: %{id: t.id, name: t.name})
+
+    teams_data =
+      Enum.map(teams, fn team ->
+        agent_ids =
+          Repo.all(
+            from tm in TeamMembership,
+              where: tm.team_id == ^team.id,
+              select: tm.agent_id
+          )
+
+        agent_count = length(agent_ids)
+
+        sessions =
+          if agent_ids == [] do
+            []
+          else
+            Repo.all(
+              from s in Session,
+                where: s.agent_id in ^agent_ids and s.inserted_at >= ^cutoff,
+                select: %{status: s.status, cost_cents: s.cost_cents}
+            )
+          end
+
+        session_count = length(sessions)
+        completed = Enum.count(sessions, &(&1.status == "completed"))
+
+        success_rate =
+          if session_count > 0, do: Float.round(completed / session_count, 4), else: 0.0
+
+        total_cost = sessions |> Enum.map(&(&1.cost_cents || 0)) |> Enum.sum()
 
         %{
-          team_id: "team_#{idx}",
-          team_name: name,
+          team_id: team.id,
+          team_name: team.name,
           agent_count: agent_count,
-          total_sessions: sessions,
-          total_cost_cents: cost_cents,
+          total_sessions: session_count,
+          total_cost_cents: total_cost,
           success_rate: success_rate
         }
       end)
       |> Enum.sort_by(& &1.total_sessions, :desc)
 
-    json(conn, %{teams: teams})
+    json(conn, %{teams: teams_data})
   end
 
   # --- Private helpers ---
@@ -137,7 +196,4 @@ defmodule CanopyWeb.AnalyticsController do
       _ -> 30
     end
   end
-
-  defp rand_int(min, max) when max > min, do: min + :rand.uniform(max - min)
-  defp rand_int(min, _max), do: min
 end
