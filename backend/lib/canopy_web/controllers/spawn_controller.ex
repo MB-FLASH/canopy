@@ -5,45 +5,52 @@ defmodule CanopyWeb.SpawnController do
   alias Canopy.Schemas.{Agent, Session}
   import Ecto.Query
 
-  # Governance gate: spawning an agent requires approval unless the requester
-  # holds an auto-approved role (e.g. admin) or the workspace policy opts out.
   plug CanopyWeb.Plugs.Governance, [action: :spawn_agent] when action in [:create]
 
   def create(conn, params) do
     agent_id = params["agent_id"]
-    # Fix 4: accept both "context" and "prompt" as the initial context
     context = params["context"] || params["prompt"] || ""
-
-    # Fix 5: look up the agent to propagate workspace_id onto the session
     agent = Repo.get!(Agent, agent_id)
 
-    session_params = %{
-      "agent_id" => agent_id,
-      "workspace_id" => agent.workspace_id,
-      "model" => params["model"] || agent.model,
-      "started_at" => DateTime.utc_now() |> DateTime.truncate(:second),
-      "context" => context,
-      "status" => "active"
-    }
+    # CONCURRENCY LIMIT: max 1 active session per agent
+    active_count =
+      Repo.one(
+        from s in Session,
+          where: s.agent_id == ^agent_id and s.status == "active",
+          select: count(s.id)
+      )
 
-    changeset = Session.changeset(%Session{}, session_params)
+    if active_count >= 1 do
+      conn
+      |> put_status(429)
+      |> json(%{error: "rate_limited", message: "Agent already has an active session. Wait for it to complete or kill it first."})
+    else
+      session_params = %{
+        "agent_id" => agent_id,
+        "workspace_id" => agent.workspace_id,
+        "model" => params["model"] || agent.model,
+        "started_at" => DateTime.utc_now() |> DateTime.truncate(:second),
+        "context" => context,
+        "status" => "active"
+      }
 
-    case Repo.insert(changeset) do
-      {:ok, session} ->
-        # Pass the pre-created session_id so Heartbeat.run/2 reuses this row
-        # instead of inserting a second one.
-        Task.Supervisor.start_child(Canopy.HeartbeatRunner, fn ->
-          Canopy.Heartbeat.run(agent_id, context: context, session_id: session.id)
-        end)
+      changeset = Session.changeset(%Session{}, session_params)
 
-        conn
-        |> put_status(201)
-        |> json(%{session: %{id: session.id, status: session.status}})
+      case Repo.insert(changeset) do
+        {:ok, session} ->
+          Task.Supervisor.start_child(Canopy.HeartbeatRunner, fn ->
+            Canopy.Heartbeat.run(agent_id, context: context, session_id: session.id)
+          end)
 
-      {:error, cs} ->
-        conn
-        |> put_status(422)
-        |> json(%{error: "validation_failed", details: format_errors(cs)})
+          conn
+          |> put_status(201)
+          |> json(%{session: %{id: session.id, status: session.status}})
+
+        {:error, cs} ->
+          conn
+          |> put_status(422)
+          |> json(%{error: "validation_failed", details: format_errors(cs)})
+      end
     end
   end
 
@@ -116,8 +123,6 @@ defmodule CanopyWeb.SpawnController do
         end)
     })
   end
-
-  # --- Private helpers ---
 
   defp format_errors(changeset) do
     Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
